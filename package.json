@@ -1,0 +1,10 @@
+{
+  "name": "offline-music-organizer",
+  "version": "1.0.0",
+  "description": "Professional tool to classify and organize music libraries offline.",
+  "scripts": {
+    "dev": "npx -y serve -p 3000",
+    "lint": "npx -y eslint .",
+    "build": "mkdir -p dist && cp index.html manifest.json sw.js app.js styles.css dist/"
+  }
+}

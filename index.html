@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Music Organizer Tool</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#000000">
+    <link rel="stylesheet" href="./styles.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-purple-500/30">
+    <header class="border-b border-white/5 px-6 py-4 flex items-center justify-between bg-black/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
+                <i data-lucide="music" class="w-6 h-6 text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight">Music Organizer</h1>
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-none">Offline Pro</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-3">
+            <button id="helpBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Keyboard Shortcuts">
+                <i data-lucide="help-circle" class="w-5 h-5"></i>
+            </button>
+            <button id="shareBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Share App">
+                <i data-lucide="share-2" class="w-5 h-5"></i>
+            </button>
+            <button id="installBtn" class="hidden flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 text-purple-400 font-bold rounded-lg hover:bg-purple-500/20 transition-all text-xs border border-purple-500/20">
+                <i data-lucide="download-cloud" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">Install</span>
+            </button>
+            <label class="cursor-pointer px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
+                <input type="file" id="fileInput" multiple accept="audio/*" class="hidden">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">Add Songs</span>
+            </label>
+            <button id="exportBtn" class="px-4 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-all shadow-lg active:scale-95">Export ZIP</button>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto p-4 sm:p-6 w-full flex-1 flex flex-col gap-6 sm:gap-8">
+        <!-- Upload State -->
+        <div id="uploadArea" class="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-3xl p-8 sm:p-12 bg-white/[0.01] text-center">
+            <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
+                <i data-lucide="upload-cloud" class="w-10 h-10 text-gray-400"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-2">Upload Music Files</h2>
+            <p id="reuploadMessage" class="text-gray-500 mb-8 max-w-sm">Select multiple MP3 files to start organizing. All processing happens in your browser.</p>
+            <label class="px-10 py-4 bg-purple-600 hover:bg-purple-500 rounded-2xl font-bold cursor-pointer transition-all shadow-xl shadow-purple-500/20 active:scale-95">
+                <input type="file" id="fileInputLarge" multiple accept="audio/*" class="hidden">
+                Browse Files
+            </label>
+        </div>
+
+        <!-- App State -->
+        <div id="mainContent" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 fade-in">
+            <!-- Player Column -->
+            <div class="lg:col-span-5 space-y-6">
+                <div class="bg-white/[0.03] border border-white/5 rounded-3xl p-6 sm:p-8 text-center space-y-8 shadow-2xl relative overflow-hidden">
+                    <div id="completionState" class="hidden py-12 space-y-6">
+                        <div class="w-20 h-20 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto">
+                            <i data-lucide="check-circle" class="w-10 h-10"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold">All Done!</h2>
+                        <button id="exportBtnLarge" class="px-10 py-4 bg-white text-black font-bold rounded-2xl shadow-xl hover:bg-gray-200 transition-all active:scale-95">Download ZIP</button>
+                    </div>
+                    
+                    <div id="activePlayer" class="space-y-8">
+                        <div class="w-48 h-48 sm:w-56 sm:h-56 bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl mx-auto flex items-center justify-center shadow-2xl relative group">
+                            <i data-lucide="disc" class="w-24 h-24 text-white/5"></i>
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-3xl">
+                                <i data-lucide="music" class="w-12 h-12 text-white/20"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <h2 id="currentSongName" class="text-xl font-bold line-clamp-1 px-4">Song Name</h2>
+                            <p id="songCounter" class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-2">0 of 0</p>
+                        </div>
+                        <div class="space-y-6">
+                            <div class="space-y-2">
+                                <input type="range" id="seekSlider" min="0" max="100" value="0" class="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer">
+                                <div class="flex justify-between text-[10px] font-mono text-gray-500 uppercase tracking-widest">
+                                    <span id="currentTime">0:00</span>
+                                    <span id="duration">0:00</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-center gap-8">
+                                <button id="prevBtn" class="p-2 text-gray-400 hover:text-white transition-colors btn-active"><i data-lucide="skip-back" class="w-8 h-8"></i></button>
+                                <button id="playBtn" class="w-20 h-20 bg-white text-black rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all"><i data-lucide="play" class="w-8 h-8 ml-1"></i></button>
+                                <button id="nextBtn" class="p-2 text-gray-400 hover:text-white transition-colors btn-active"><i data-lucide="skip-forward" class="w-8 h-8"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white/[0.03] border border-white/5 rounded-3xl p-6 shadow-lg">
+                    <div class="flex justify-between items-end mb-3">
+                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Session Progress</span>
+                        <span id="progressPercent" class="text-xs font-bold text-purple-400">Processed: 0 / 0</span>
+                    </div>
+                    <div class="h-2.5 bg-white/5 rounded-full overflow-hidden">
+                        <div id="progressBar" class="h-full bg-gradient-to-r from-purple-500 to-blue-500 transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tagger Column -->
+            <div class="lg:col-span-7 space-y-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Folders</h3>
+                    <div class="flex gap-2">
+                        <button id="undoBtn" disabled class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 disabled:opacity-20 transition-all" title="Undo Last Tag"><i data-lucide="undo" class="w-4 h-4"></i></button>
+                        <button id="presetsBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Preset Packs"><i data-lucide="library" class="w-4 h-4"></i></button>
+                        <button id="addFolderBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Add Folder"><i data-lucide="folder-plus" class="w-4 h-4"></i></button>
+                        <button id="resetAppBtn" class="p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-red-500 transition-all" title="Reset All"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                </div>
+
+                <div id="foldersGrid" class="folders-container custom-scrollbar"></div>
+
+                <div class="border-t border-white/5 pt-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Queue</h3>
+                        <button id="clearQueueBtn" class="text-[10px] font-bold text-red-500 uppercase hover:underline tracking-widest">Clear Queue</button>
+                    </div>
+                    <div id="queueList" class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="p-6 text-center border-t border-white/5 text-[10px] text-gray-600 uppercase tracking-widest space-y-2">
+        <p>Idea by sahildh3 • Programming by Google AI Studio • Powered by JSZip</p>
+        <p class="text-gray-700">All files remain in your browser • No data leaves your device</p>
+    </footer>
+
+    <audio id="audioPlayer"></audio>
+
+    <!-- Presets Modal -->
+    <div id="presetsModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl fade-in">
+            <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                <h2 class="text-xl font-bold">Preset Packs</h2>
+                <button id="closePresetsBtn" class="p-2 hover:bg-white/5 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                <div class="space-y-3">
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Language</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="preset-pack-btn px-4 py-2 bg-white/5 hover:bg-purple-500/20 border border-white/5 rounded-xl text-sm transition-all" data-pack="language">English, Spanish, Hindi, French, Other</button>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Mood</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="preset-pack-btn px-4 py-2 bg-white/5 hover:bg-purple-500/20 border border-white/5 rounded-xl text-sm transition-all" data-pack="mood">Happy, Sad, Chill, Energetic, Relax</button>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Type</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="preset-pack-btn px-4 py-2 bg-white/5 hover:bg-purple-500/20 border border-white/5 rounded-xl text-sm transition-all" data-pack="type">Podcast, Audiobook, Music, Background, Ambience</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Folder Modal -->
+    <div id="folderModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl fade-in">
+            <div class="p-6 border-b border-white/5">
+                <h2 id="folderModalTitle" class="text-xl font-bold">Add Folder</h2>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="text" id="folderNameInput" placeholder="Enter folder name..." class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-purple-500 transition-all">
+                <div class="flex gap-3">
+                    <button id="cancelFolderBtn" class="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold transition-all">Cancel</button>
+                    <button id="saveFolderBtn" class="flex-1 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold transition-all">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[130] flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl fade-in">
+            <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                <h2 class="text-xl font-bold">Keyboard Shortcuts</h2>
+                <button id="closeHelpBtn" class="p-2 hover:bg-white/5 rounded-xl transition-all"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                        <span class="text-xs text-gray-400">Play / Pause</span>
+                        <kbd class="px-2 py-1 bg-white/10 rounded text-[10px] font-mono">Space</kbd>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                        <span class="text-xs text-gray-400">Next Song</span>
+                        <kbd class="px-2 py-1 bg-white/10 rounded text-[10px] font-mono">→</kbd>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                        <span class="text-xs text-gray-400">Prev Song</span>
+                        <kbd class="px-2 py-1 bg-white/10 rounded text-[10px] font-mono">←</kbd>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                        <span class="text-xs text-gray-400">Undo Action</span>
+                        <kbd class="px-2 py-1 bg-white/10 rounded text-[10px] font-mono">Ctrl + Z</kbd>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                        <span class="text-xs text-gray-400">Tag 1-9</span>
+                        <kbd class="px-2 py-1 bg-white/10 rounded text-[10px] font-mono">1 - 9</kbd>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Modal -->
+    <div id="progressModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl fade-in">
+            <div class="p-6 border-b border-white/5">
+                <h2 class="text-xl font-bold">Preparing ZIP...</h2>
+            </div>
+            <div class="p-8 space-y-6">
+                <div class="w-full bg-white/5 rounded-full h-4 overflow-hidden">
+                    <div id="progressBar" class="bg-purple-600 h-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span id="progressText" class="text-gray-400 font-bold">0%</span>
+                    <span id="progressStatus" class="text-gray-500 italic">Compressing...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[120] flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl fade-in">
+            <div class="p-6 border-b border-white/5">
+                <h2 id="confirmModalTitle" class="text-xl font-bold">Are you sure?</h2>
+            </div>
+            <div class="p-6 space-y-4">
+                <p id="confirmModalMessage" class="text-gray-400 text-sm">This action cannot be undone.</p>
+                <div class="flex gap-3">
+                    <button id="cancelConfirmBtn" class="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold transition-all">Cancel</button>
+                    <button id="saveConfirmBtn" class="flex-1 py-3 bg-red-600 hover:bg-red-500 rounded-xl font-bold transition-all">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="border-t border-white/5 py-8 px-6 text-center">
+        <p class="text-gray-500 text-sm mb-2">Designed & Developed by <span class="text-white font-bold">sahildh3</span></p>
+        <p class="text-gray-600 text-[10px] uppercase tracking-widest font-bold">Powered by JSZip & Lucide Icons</p>
+    </footer>
+
+    <script src="./app.js"></script>
+</body>
+</html>
