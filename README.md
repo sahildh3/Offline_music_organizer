@@ -4,17 +4,28 @@ A high-performance, privacy-first Progressive Web Application (PWA) designed for
 
 ## 🚀 Overview
 
-The **Music Organizer Tool** allows you to quickly classify and organize your music files into custom folders directly in your browser. It operates entirely offline, ensuring your data never leaves your device. Once organized, you can export your library as a structured ZIP file.
+The **Music Organizer Tool** allows you to quickly classify and organize your music files into custom folders directly in your browser. It operates entirely offline, ensuring your data never leaves your device. Once organized, you can export your library as a structured directory or ZIP file.
 
 ## ✨ Features
 
 - **Privacy First:** 100% client-side processing. No files are uploaded to any server.
+- **Metadata Extraction:** Automatically extracts **Artist** and **Album** information from MP3 (ID3v1/v2) and M4A/MP4 files.
+- **Smart Organization:** Tag songs into custom folders with a single click or keyboard shortcut.
+- **Real-time Stats:** View file sizes and song counts per folder as you organize.
 - **PWA Ready:** Installable on desktop and mobile devices for a native-like experience.
 - **Offline Support:** Works without an internet connection using Service Workers.
-- **Custom Folders:** Create, edit, and delete custom classification folders.
-- **Preset Packs:** Quick-start with preset categories for Language, Mood, and Type.
-- **Keyboard Shortcuts:** Optimized for speed with dedicated hotkeys.
-- **ZIP Export:** Download your organized library in one click.
+- **Advanced Export:** Multiple export methods optimized for different library sizes and devices.
+- **Keyboard Shortcuts:** Optimized for speed with dedicated hotkeys for professional workflows.
+
+## 📦 Export Methods
+
+| Method | Best For | Compatibility |
+|--------|----------|---------------|
+| **Streaming ZIP** | Large Libraries (100+ songs) | All Browsers (Desktop & Mobile) |
+| **Direct Sync** | Professional Workflow | Desktop Chrome / Edge / Brave |
+| **Batched ZIPs** | Low Memory Environments | All Browsers |
+
+> **Note:** Browser security prevents "Direct Sync" from working inside iframes. Open the app in a new tab to enable advanced file system features.
 
 ## ⌨️ Keyboard Shortcuts
 
@@ -22,25 +33,56 @@ The **Music Organizer Tool** allows you to quickly classify and organize your mu
 |-----|--------|
 | `Space` | Play / Pause |
 | `1-9` | Assign to Folder 1-9 |
-| `Z` | Undo Last Tag |
-| `Enter` | Export ZIP |
+| `Ctrl + Z` | Undo Last Tag |
+| `→` | Next Song |
+| `←` | Previous Song |
+
+## 🛡️ Security & Privacy
+
+- **100% Local:** All processing happens in your browser's memory. No tracking, no uploads.
+- **XSS Protection:** All user-provided metadata and folder names are sanitized before rendering.
+- **Path Traversal Prevention:** Filenames are strictly sanitized to ensure safe directory structures during export.
+- **Memory Safety:** Automatic cleanup of audio object URLs to prevent browser crashes during long sessions.
 
 ## 🛠️ Built With
 
-- **HTML5 / CSS3 / JavaScript (ES6+)**
-- **Tailwind CSS:** For modern, responsive styling.
-- **Lucide Icons:** For beautiful, consistent iconography.
-- **JSZip:** For client-side ZIP generation.
+- **Vanilla JavaScript (ES6+):** No external frameworks for maximum performance.
+- **Web Streams API:** High-performance, memory-efficient ZIP generation.
+- **File System Access API:** Direct local directory synchronization.
+- **Tailwind CSS:** Modern, responsive utility-first styling (locally bundled).
 
-## 📜 Credits & Acknowledgments
+## ⚠️ Limitations
 
-This project relies on the following open-source libraries:
+- **Maximum ZIP size:** ~4GB (standard ZIP format limit).
+- **Batch export:** Limited and may fail for large files; only recommended for small datasets (<1GB).
+- **Streaming export:** Recommended for large libraries to ensure stability.
 
-- **[JSZip](https://stuk.github.io/jszip/):** A JavaScript library for creating, reading and editing .zip files. Licensed under the MIT License.
-- **[Lucide](https://lucide.dev/):** A community-run fork of Feather Icons. Licensed under the ISC License.
-- **[Tailwind CSS](https://tailwindcss.com/):** A utility-first CSS framework. Licensed under the MIT License.
+### Why ZIP64 is not implemented
 
-Special thanks to the open-source community for providing these essential tools.
+This project uses standard ZIP format for maximum browser compatibility.
+
+ZIP64 support (for files >4GB) is intentionally not implemented due to:
+- Limited browser support for large binary structures
+- Increased complexity and risk of corruption
+- Lack of reliable cross-browser testing
+
+For large libraries, users should split exports or use Direct Sync.
+
+## 📜 Credits & Licenses
+
+### Tailwind CSS
+- License: MIT
+- https://tailwindcss.com
+
+### Lucide Icons
+- License: ISC
+- https://lucide.dev
+
+### Browser APIs
+- Web Streams API
+- File System Access API
+- Service Workers
+(No license required)
 
 ## ⚖️ License
 

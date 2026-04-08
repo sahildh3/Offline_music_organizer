@@ -7,38 +7,36 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#000000">
     <link rel="stylesheet" href="./styles.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="./tailwind.css">
 </head>
 <body class="min-h-screen flex flex-col selection:bg-purple-500/30">
     <header class="border-b border-white/5 px-6 py-4 flex items-center justify-between bg-black/80 backdrop-blur-md sticky top-0 z-50">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
-                <i data-lucide="music" class="w-6 h-6 text-white"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-white"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
             </div>
             <div>
                 <h1 class="text-lg font-bold tracking-tight">Music Organizer</h1>
-                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-none">Offline Pro</p>
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-none">Pro Tool</p>
             </div>
         </div>
         <div class="flex items-center gap-2 sm:gap-3">
             <button id="helpBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Keyboard Shortcuts">
-                <i data-lucide="help-circle" class="w-5 h-5"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </button>
             <button id="shareBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Share App">
-                <i data-lucide="share-2" class="w-5 h-5"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             </button>
             <button id="installBtn" class="hidden flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 text-purple-400 font-bold rounded-lg hover:bg-purple-500/20 transition-all text-xs border border-purple-500/20">
-                <i data-lucide="download-cloud" class="w-4 h-4"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
                 <span class="hidden sm:inline">Install</span>
             </button>
             <label class="cursor-pointer px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
                 <input type="file" id="fileInput" multiple accept="audio/*" class="hidden">
-                <i data-lucide="plus" class="w-4 h-4"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 <span class="hidden sm:inline">Add Songs</span>
             </label>
-            <button id="exportBtn" class="px-4 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-all shadow-lg active:scale-95">Export ZIP</button>
+            <button id="exportBtn" class="px-4 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-all shadow-lg active:scale-95">Export Options</button>
         </div>
     </header>
 
@@ -46,7 +44,7 @@
         <!-- Upload State -->
         <div id="uploadArea" class="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-3xl p-8 sm:p-12 bg-white/[0.01] text-center">
             <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
-                <i data-lucide="upload-cloud" class="w-10 h-10 text-gray-400"></i>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-10 h-10 text-gray-400"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
             </div>
             <h2 class="text-2xl font-bold mb-2">Upload Music Files</h2>
             <p id="reuploadMessage" class="text-gray-500 mb-8 max-w-sm">Select multiple MP3 files to start organizing. All processing happens in your browser.</p>
@@ -63,21 +61,22 @@
                 <div class="bg-white/[0.03] border border-white/5 rounded-3xl p-6 sm:p-8 text-center space-y-8 shadow-2xl relative overflow-hidden">
                     <div id="completionState" class="hidden py-12 space-y-6">
                         <div class="w-20 h-20 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto">
-                            <i data-lucide="check-circle" class="w-10 h-10"></i>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-10 h-10"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                         </div>
                         <h2 class="text-2xl font-bold">All Done!</h2>
-                        <button id="exportBtnLarge" class="px-10 py-4 bg-white text-black font-bold rounded-2xl shadow-xl hover:bg-gray-200 transition-all active:scale-95">Download ZIP</button>
+                        <button id="exportBtnLarge" class="px-10 py-4 bg-white text-black font-bold rounded-2xl shadow-xl hover:bg-gray-200 transition-all active:scale-95">Export Options</button>
                     </div>
                     
                     <div id="activePlayer" class="space-y-8">
                         <div class="w-48 h-48 sm:w-56 sm:h-56 bg-gradient-to-br from-gray-800 to-gray-900 rounded-3xl mx-auto flex items-center justify-center shadow-2xl relative group">
-                            <i data-lucide="disc" class="w-24 h-24 text-white/5"></i>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-24 h-24 text-white/5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
                             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-3xl">
-                                <i data-lucide="music" class="w-12 h-12 text-white/20"></i>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-12 h-12 text-white/20"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
                             </div>
                         </div>
                         <div>
                             <h2 id="currentSongName" class="text-xl font-bold line-clamp-1 px-4">Song Name</h2>
+                            <p id="currentSongInfo" class="text-gray-500 text-xs mt-1 px-4 truncate">Unknown Artist • Unknown Album</p>
                             <p id="songCounter" class="text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-2">0 of 0</p>
                         </div>
                         <div class="space-y-6">
@@ -89,9 +88,9 @@
                                 </div>
                             </div>
                             <div class="flex items-center justify-center gap-8">
-                                <button id="prevBtn" class="p-2 text-gray-400 hover:text-white transition-colors btn-active"><i data-lucide="skip-back" class="w-8 h-8"></i></button>
-                                <button id="playBtn" class="w-20 h-20 bg-white text-black rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all"><i data-lucide="play" class="w-8 h-8 ml-1"></i></button>
-                                <button id="nextBtn" class="p-2 text-gray-400 hover:text-white transition-colors btn-active"><i data-lucide="skip-forward" class="w-8 h-8"></i></button>
+                                <button id="prevBtn" class="p-2 text-gray-400 hover:text-white transition-colors btn-active"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
+                                <button id="playBtn" class="w-20 h-20 bg-white text-black rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 ml-1"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+                                <button id="nextBtn" class="p-2 text-gray-400 hover:text-white transition-colors btn-active"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
                             </div>
                         </div>
                     </div>
@@ -113,10 +112,10 @@
                 <div class="flex items-center justify-between">
                     <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Folders</h3>
                     <div class="flex gap-2">
-                        <button id="undoBtn" disabled class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 disabled:opacity-20 transition-all" title="Undo Last Tag"><i data-lucide="undo" class="w-4 h-4"></i></button>
-                        <button id="presetsBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Preset Packs"><i data-lucide="library" class="w-4 h-4"></i></button>
-                        <button id="addFolderBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Add Folder"><i data-lucide="folder-plus" class="w-4 h-4"></i></button>
-                        <button id="resetAppBtn" class="p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-red-500 transition-all" title="Reset All"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        <button id="undoBtn" disabled class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 disabled:opacity-20 transition-all" title="Undo Last Tag"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg></button>
+                        <button id="presetsBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Preset Packs"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></button>
+                        <button id="addFolderBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Add Folder"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><line x1="12" y1="10" x2="12" y2="16"/><line x1="9" y1="13" x2="15" y2="13"/></svg></button>
+                        <button id="resetAppBtn" class="p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-red-500 transition-all" title="Reset All"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
                     </div>
                 </div>
 
@@ -127,6 +126,13 @@
                         <h3 class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Queue</h3>
                         <button id="clearQueueBtn" class="text-[10px] font-bold text-red-500 uppercase hover:underline tracking-widest">Clear Queue</button>
                     </div>
+                    
+                    <!-- Queue Search -->
+                    <div class="mb-4 relative group">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-purple-400 transition-colors"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" id="queueSearch" placeholder="Filter songs or tags..." class="w-full bg-white/5 border border-white/5 rounded-xl py-2 pl-9 pr-4 text-[10px] focus:outline-none focus:border-purple-500/50 focus:bg-white/10 transition-all placeholder:text-gray-600">
+                    </div>
+
                     <div id="queueList" class="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar"></div>
                 </div>
             </div>
@@ -134,8 +140,9 @@
     </main>
 
     <footer class="p-6 text-center border-t border-white/5 text-[10px] text-gray-600 uppercase tracking-widest space-y-2">
-        <p>Idea by sahildh3 • Programming by Google AI Studio • Powered by JSZip</p>
-        <p class="text-gray-700">All files remain in your browser • No data leaves your device</p>
+        <p>Idea by sahildh3 • Programming by Google AI Studio • Built with Web Streams and File System Access APIs</p>
+        <p class="text-gray-700">Privacy: 100% Local. No data is ever uploaded.</p>
+        <p class="text-gray-500/50 lowercase italic">Disclaimer: The developer is not responsible for any file corruption or data loss resulting from the use of these experimental features.</p>
     </footer>
 
     <audio id="audioPlayer"></audio>
@@ -145,7 +152,7 @@
         <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl fade-in">
             <div class="p-6 border-b border-white/5 flex justify-between items-center">
                 <h2 class="text-xl font-bold">Preset Packs</h2>
-                <button id="closePresetsBtn" class="p-2 hover:bg-white/5 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <button id="closePresetsBtn" class="p-2 hover:bg-white/5 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
             <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
                 <div class="space-y-3">
@@ -191,7 +198,7 @@
         <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl fade-in">
             <div class="p-6 border-b border-white/5 flex justify-between items-center">
                 <h2 class="text-xl font-bold">Keyboard Shortcuts</h2>
-                <button id="closeHelpBtn" class="p-2 hover:bg-white/5 rounded-xl transition-all"><i data-lucide="x" class="w-5 h-5"></i></button>
+                <button id="closeHelpBtn" class="p-2 hover:bg-white/5 rounded-xl transition-all"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
             <div class="p-6 space-y-4">
                 <div class="grid grid-cols-2 gap-4">
@@ -220,20 +227,172 @@
         </div>
     </div>
 
+    <!-- Export Options Modal -->
+    <div id="exportModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[140] flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl fade-in">
+            <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                <h2 class="text-xl font-bold">Export Organized Music</h2>
+                <button id="closeExportBtn" class="p-2 hover:bg-white/5 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+            <div class="p-6 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                <div class="space-y-4">
+                    <h3 class="text-xs font-bold uppercase tracking-widest text-gray-500">Select Export Method</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <!-- Method 1 Selection -->
+                        <button id="selectStreamingBtn" class="export-method-card p-4 bg-white/5 border-2 border-transparent rounded-2xl hover:bg-white/10 transition-all text-left space-y-2 group active-method" data-method="streaming">
+                            <div class="w-8 h-8 bg-purple-500/20 text-purple-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                            </div>
+                            <h4 class="text-sm font-bold">Streaming ZIP</h4>
+                            <p class="text-[9px] text-gray-500 leading-tight">Recommended. Best for large libraries. Streams directly to disk.</p>
+                        </button>
+
+                        <!-- Method 3 Selection -->
+                        <button id="selectSyncBtn" class="export-method-card p-4 bg-white/5 border-2 border-transparent rounded-2xl hover:bg-white/10 transition-all text-left space-y-2 group" data-method="sync">
+                            <div class="w-8 h-8 bg-orange-500/20 text-orange-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v.5"/><path d="M12 10v4h4"/><path d="m12 14 1.5-1.5c.9-.9 2.2-1.5 3.5-1.5s2.6.6 3.5 1.5c.4.4.8 1 1 1.5"/><path d="M22 22v-4h-4"/><path d="m22 18-1.5 1.5c-.9.9-2.1 1.5-3.5 1.5s-2.6-.6-3.5-1.5c-.4-.4-.8-1-1-1.5"/></svg>
+                            </div>
+                            <h4 class="text-sm font-bold">Direct Sync</h4>
+                            <p class="text-[9px] text-gray-500 leading-tight">Advanced Mode. Writes files directly to a local folder.</p>
+                        </button>
+                    </div>
+
+                    <div class="pt-4 border-t border-white/5">
+                        <button id="toggleAdvancedExport" class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><polyline points="6 9 12 15 18 9"/></svg>
+                            <span>Advanced Options</span>
+                        </button>
+                        
+                        <div id="advancedExportSection" class="hidden mt-4 space-y-4">
+                            <!-- Method 2 Selection -->
+                            <button id="selectBatchBtn" class="export-method-card w-full p-4 bg-white/5 border-2 border-transparent rounded-2xl hover:bg-white/10 transition-all text-left space-y-2 group" data-method="batch">
+                                <div class="w-8 h-8 bg-blue-500/20 text-blue-400 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><polygon points="12 2 2 7 12 12 22 7 12 2"/></svg>
+                                </div>
+                                <h4 class="text-sm font-bold">Batched ZIPs</h4>
+                                <p class="text-[9px] text-gray-500 leading-tight">⚠️ Limited (Memory-based, not for large libraries). Legacy Mode.</p>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Method Details -->
+                <div id="methodDetails" class="space-y-4">
+                    <!-- Iframe Warning -->
+                    <div id="iframeWarning" class="hidden p-4 bg-red-500/10 border border-red-500/20 rounded-2xl space-y-2">
+                        <div class="flex items-center gap-2 text-red-500 font-bold text-[10px] uppercase tracking-widest">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            <span>Iframe Restriction Detected</span>
+                        </div>
+                        <p class="text-[10px] text-red-400/70 leading-relaxed">
+                            Browser security prevents <span class="font-bold">Direct Sync</span> and <span class="font-bold">Streaming ZIP</span> from working inside this preview window.
+                        </p>
+                        <button id="openNewTabBtn" class="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-[10px] font-bold rounded-xl transition-all flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                            <span>Open in New Tab to Enable</span>
+                        </button>
+                    </div>
+
+                    <div id="browserCompatibilityWarning" class="hidden p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl space-y-2">
+                        <div class="flex items-center gap-2 text-orange-500 font-bold text-[10px] uppercase tracking-widest">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <span>Compatibility Warning</span>
+                        </div>
+                        <p id="syncWarningText" class="text-[10px] text-orange-400/70 leading-relaxed">
+                            Direct Sync is only supported on Desktop Chrome and Edge.
+                        </p>
+                    </div>
+
+                    <div id="streamingDetails" class="p-4 bg-purple-500/5 border border-purple-500/10 rounded-2xl space-y-2">
+                        <div class="flex items-center gap-2 text-purple-400 font-bold text-[10px] uppercase tracking-widest">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                            <span>Streaming ZIP</span>
+                        </div>
+                        <p class="text-[10px] text-purple-300/70 leading-relaxed">
+                            <span class="font-bold text-purple-400">Best for:</span> Large libraries (100+ songs). Uses the Web Streams API to build the ZIP file in real-time, keeping memory usage low and preventing browser crashes.
+                        </p>
+                        <ul class="text-[9px] text-purple-400/60 space-y-1 list-disc list-inside">
+                            <li>Low RAM consumption</li>
+                            <li>Single file download</li>
+                            <li>Reliable for large exports</li>
+                        </ul>
+                    </div>
+                    <div id="batchDetails" class="hidden p-4 bg-blue-500/5 border border-blue-500/10 rounded-2xl space-y-2">
+                        <div class="flex items-center gap-2 text-blue-400 font-bold text-[10px] uppercase tracking-widest">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><polygon points="12 2 2 7 12 12 22 7 12 2"/></svg>
+                            <span>Batched ZIPs</span>
+                        </div>
+                        <p class="text-[10px] text-blue-300/70 leading-relaxed">
+                            <span class="font-bold text-blue-400">Best for:</span> Very small libraries. Splits the export into manageable 300MB parts.
+                        </p>
+                        <ul class="text-[9px] text-blue-400/60 space-y-1 list-disc list-inside">
+                            <li>Limited to files < 300MB</li>
+                            <li>Limited to total library < 1GB</li>
+                            <li>Uses more memory than streaming</li>
+                        </ul>
+                    </div>
+                    <div id="syncDetails" class="hidden p-4 bg-orange-500/5 border border-orange-500/10 rounded-2xl space-y-2">
+                        <div class="flex items-center gap-2 text-orange-400 font-bold text-[10px] uppercase tracking-widest">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><path d="M9 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H20a2 2 0 0 1 2 2v.5"/><path d="M12 10v4h4"/><path d="m12 14 1.5-1.5c.9-.9 2.2-1.5 3.5-1.5s2.6.6 3.5 1.5c.4.4.8 1 1 1.5"/><path d="M22 22v-4h-4"/><path d="m22 18-1.5 1.5c-.9.9-2.1 1.5-3.5 1.5s-2.6-.6-3.5-1.5c-.4-.4-.8-1-1-1.5"/></svg>
+                            <span>Direct Sync</span>
+                        </div>
+                        <p class="text-[10px] text-orange-300/70 leading-relaxed">
+                            <span class="font-bold text-orange-400">Best for:</span> Power users. Writes files directly into your chosen directory. No ZIP file is created, so your music is organized instantly on your hard drive.
+                        </p>
+                        <ul class="text-[9px] text-orange-400/60 space-y-1 list-disc list-inside">
+                            <li>Instant organization</li>
+                            <li>No intermediate ZIP file</li>
+                            <li>Native file system performance</li>
+                        </ul>
+                        <div class="flex items-center gap-2 text-orange-400/80 bg-orange-500/10 p-2 rounded-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <span class="text-[9px] font-bold uppercase tracking-wider">Experimental Feature</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-white/5 border border-white/5 rounded-2xl space-y-3">
+                    <div>
+                        <h4 class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">ZIP Format Limits</h4>
+                        <p class="text-[9px] text-gray-500 leading-relaxed">
+                            Standard ZIP files are limited to <span class="font-bold">4GB</span>. If your export exceeds this, the archive may be corrupted. Please split large libraries.
+                        </p>
+                    </div>
+                    <div>
+                        <h4 class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Privacy & Terms</h4>
+                        <p class="text-[9px] text-gray-500 leading-relaxed">
+                            This tool runs entirely in your browser; no data is uploaded to a server. 
+                            The developer is not responsible for any data loss or file corruption.
+                        </p>
+                    </div>
+                </div>
+
+                <button id="startExportBtn" class="w-full py-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold rounded-2xl shadow-lg shadow-purple-500/20 transition-all flex items-center justify-center gap-2 group">
+                    <span>Initiate Export</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 group-hover:translate-x-1 transition-transform"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Progress Modal -->
     <div id="progressModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl fade-in">
             <div class="p-6 border-b border-white/5">
-                <h2 class="text-xl font-bold">Preparing ZIP...</h2>
+                <h2 id="progressTitle" class="text-xl font-bold">Processing...</h2>
             </div>
             <div class="p-8 space-y-6">
                 <div class="w-full bg-white/5 rounded-full h-4 overflow-hidden">
-                    <div id="progressBar" class="bg-purple-600 h-full transition-all duration-300" style="width: 0%"></div>
+                    <div id="zipProgressBar" class="bg-purple-600 h-full transition-all duration-300" style="width: 0%"></div>
                 </div>
                 <div class="flex justify-between items-center text-sm">
                     <span id="progressText" class="text-gray-400 font-bold">0%</span>
-                    <span id="progressStatus" class="text-gray-500 italic">Compressing...</span>
+                    <span id="progressStatus" class="text-gray-500 italic">Starting...</span>
                 </div>
+                <button id="cancelExportBtn" class="w-full py-3 bg-white/5 hover:bg-red-500/10 border border-white/10 hover:border-red-500/50 text-gray-400 hover:text-red-400 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                    <span>Cancel Export</span>
+                </button>
             </div>
         </div>
     </div>
@@ -254,11 +413,50 @@
         </div>
     </div>
 
-    <footer class="border-t border-white/5 py-8 px-6 text-center">
-        <p class="text-gray-500 text-sm mb-2">Designed & Developed by <span class="text-white font-bold">sahildh3</span></p>
-        <p class="text-gray-600 text-[10px] uppercase tracking-widest font-bold">Powered by JSZip & Lucide Icons</p>
+    <footer class="border-t border-white/5 py-8 px-6 text-center space-y-4">
+        <p class="text-gray-500 text-sm">Designed & Developed by <span class="text-white font-bold">sahildh3</span></p>
+        <p class="text-gray-600 text-[10px] uppercase tracking-widest font-bold">
+            Powered by Web File System Access API & Web Streams API • No External Libraries
+        </p>
+        <div class="max-w-md mx-auto pt-4 border-t border-white/5">
+            <p class="text-[9px] text-gray-700 uppercase tracking-widest leading-relaxed">
+                Disclaimer: This tool is a 100% client-side utility. No audio data is ever transmitted to a server. 
+                Use at your own risk regarding file system operations.
+            </p>
+        </div>
     </footer>
 
+    <!-- Error Modal -->
+    <div id="errorModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-red-500/20 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl scale-in">
+            <div class="p-6 bg-red-500/10 border-b border-red-500/10 flex items-center gap-3">
+                <div class="w-10 h-10 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-red-500">Export Failed</h2>
+                    <p class="text-[10px] text-red-400/60 uppercase tracking-widest font-bold">Error Details</p>
+                </div>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="space-y-2">
+                    <p class="text-xs text-gray-400">An error occurred during the export process:</p>
+                    <div id="errorMessage" class="p-3 bg-black/40 border border-white/5 rounded-xl text-xs font-mono text-red-400 break-words">
+                        Unknown error occurred.
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Suggested Action</p>
+                    <p id="errorSuggestion" class="text-xs text-gray-300 leading-relaxed">
+                        Try splitting your library into smaller folders or using "Direct Sync" if supported by your browser.
+                    </p>
+                </div>
+                <button id="closeErrorBtn" class="w-full py-3 bg-white/5 hover:bg-white/10 text-white text-xs font-bold rounded-xl transition-all">
+                    Dismiss
+                </button>
+            </div>
+        </div>
+    </div>
     <script src="./app.js"></script>
 </body>
 </html>
