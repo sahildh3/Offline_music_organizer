@@ -19,7 +19,8 @@ const state = {
     exportAbortController: null,
     exportWorker: null,
     queueSearchQuery: '',
-    objectUrls: {} // Track URLs for memory safety
+    objectUrls: {}, // Track URLs for memory safety
+    taggingLockTimeout: null
 };
 
 // --- ZIP Utility (Vanilla JS) ---
@@ -254,7 +255,19 @@ const elements = {
     nextBtn: document.getElementById('nextBtn'),
     exportBtn: document.getElementById('exportBtn'),
     exportBtnLarge: document.getElementById('exportBtnLarge'),
-    addFolderBtn: document.getElementById('addFolderBtn'),
+    importBackupBtn: document.getElementById('importBackupBtn'),
+    exportBackupBtn: document.getElementById('exportBackupBtn'),
+    extractMetadataToggle: document.getElementById('extractMetadataToggle'),
+    skipBtn: document.getElementById('skipBtn'),
+    exportSummaryModal: document.getElementById('exportSummaryModal'),
+    exportSummaryList: document.getElementById('exportSummaryList'),
+    cancelExportSummaryBtn: document.getElementById('cancelExportSummaryBtn'),
+    confirmExportSummaryBtn: document.getElementById('confirmExportSummaryBtn'),
+    manageFoldersBtn: document.getElementById('manageFoldersBtn'),
+    manageFoldersModal: document.getElementById('manageFoldersModal'),
+    closeManageFoldersBtn: document.getElementById('closeManageFoldersBtn'),
+    manageAddFolderBtn: document.getElementById('manageAddFolderBtn'),
+    manageFoldersList: document.getElementById('manageFoldersList'),
     presetsBtn: document.getElementById('presetsBtn'),
     presetsModal: document.getElementById('presetsModal'),
     closePresetsBtn: document.getElementById('closePresetsBtn'),
@@ -424,30 +437,14 @@ async function exportStreaming() {
 async function exportBatched() {
     if (state.songs.length === 0) return;
 
-    const totalSize = state.songs.reduce((acc, s) => acc + s.file.size, 0);
-    const LARGE_LIBRARY_THRESHOLD = 1024 * 1024 * 1024; // 1GB
-
-    if (totalSize > LARGE_LIBRARY_THRESHOLD) {
-        alert("Your library is too large (>1GB) for Batch Export. Switching to 'Streaming ZIP' for production stability.");
-        state.selectedExportMethod = 'streaming';
-        localStorage.setItem('mo_export_method', 'streaming');
-        updateExportSelection('streaming');
-        return exportStreaming();
-    }
-
-    // Per-file check for Batch Export
-    const oversizedFiles = state.songs.filter(s => s.file.size > 300 * 1024 * 1024);
-    if (oversizedFiles.length > 0) {
-        alert(`Found ${oversizedFiles.length} file(s) larger than 300MB. Batch Export cannot handle these files safely. Switching to 'Streaming ZIP'.`);
-        state.selectedExportMethod = 'streaming';
-        localStorage.setItem('mo_export_method', 'streaming');
-        updateExportSelection('streaming');
-        return exportStreaming();
-    }
-
     elements.exportModal.classList.add('hidden');
     elements.progressModal.classList.remove('hidden');
-    
+    elements.progressTitle.textContent = "Batched Export";
+    elements.zipProgressBar.style.width = "0%";
+    elements.progressText.textContent = "0%";
+    elements.progressStatus.textContent = "Preparing batches...";
+    elements.cancelExportBtn.classList.remove('hidden');
+
     state.exportAbortController = new AbortController();
     const signal = state.exportAbortController.signal;
 
@@ -458,7 +455,7 @@ async function exportBatched() {
 
     const processBatch = async (batch, index) => {
         if (signal.aborted) throw new Error('AbortError');
-        await updateProgress(100, `Finalizing Batch ${index}...`, `Batch ${index}`, true);
+        await updateProgress(100, `Finalizing Batch ${index}...`, `Batch ${index}`, false);
         const entries = [];
         let offset = 0;
         const chunks = [];
@@ -532,7 +529,14 @@ async function exportBatched() {
         a.href = url;
         a.download = `Organized_Music_Part${index}.zip`;
         a.click();
+        
+        // Explicitly flush memory
         URL.revokeObjectURL(url);
+        chunks.length = 0;
+        entries.length = 0;
+        
+        // Yield to allow GC
+        await new Promise(resolve => setTimeout(resolve, 100));
     };
 
     try {
@@ -551,6 +555,12 @@ async function exportBatched() {
             const folderName = folder ? folder.name : "Unclassified";
             const filename = `${ZIP_UTILS.sanitizeFilename(folderName)}/${ZIP_UTILS.sanitizeFilename(song.name)}`;
             const fileSize = song.file.size;
+
+            if (fileSize > MAX_BATCH_SIZE) {
+                console.warn(`File ${song.name} exceeds batch size limit (${MAX_BATCH_SIZE} bytes). Skipping.`);
+                processedBytes += fileSize;
+                continue;
+            }
 
             if (currentBatchSize + fileSize > MAX_BATCH_SIZE && currentBatch.length > 0) {
                 await processBatch(currentBatch, batchCount++);
@@ -677,25 +687,146 @@ async function exportDirectSync() {
     }
 }
 
+// --- Export Summary & Backup ---
+
+function showExportSummary() {
+    if (state.songs.length === 0) return;
+    
+    const summary = {};
+    state.folders.forEach(f => summary[f.id] = { name: f.name, count: 0 });
+    summary['unassigned'] = { name: 'Unassigned', count: 0 };
+
+    state.songs.forEach((song, index) => {
+        const folderId = state.tags[index];
+        if (folderId && summary[folderId]) {
+            summary[folderId].count++;
+        } else {
+            summary['unassigned'].count++;
+        }
+    });
+
+    elements.exportSummaryList.innerHTML = '';
+    
+    let totalCount = 0;
+    for (const key in summary) {
+        if (summary[key].count > 0) {
+            totalCount += summary[key].count;
+            const item = document.createElement('div');
+            item.className = 'flex justify-between items-center py-1 border-b border-white/5 last:border-0';
+            item.innerHTML = `
+                <span class="text-gray-300">${summary[key].name}</span>
+                <span class="font-mono text-purple-400">${summary[key].count}</span>
+            `;
+            elements.exportSummaryList.appendChild(item);
+        }
+    }
+
+    const totalItem = document.createElement('div');
+    totalItem.className = 'flex justify-between items-center py-2 mt-2 border-t border-white/10 font-bold';
+    totalItem.innerHTML = `
+        <span class="text-white">Total Files</span>
+        <span class="font-mono text-purple-400">${totalCount}</span>
+    `;
+    elements.exportSummaryList.appendChild(totalItem);
+
+    elements.exportSummaryModal.classList.remove('hidden');
+}
+
+if (elements.cancelExportSummaryBtn) {
+    elements.cancelExportSummaryBtn.onclick = () => {
+        elements.exportSummaryModal.classList.add('hidden');
+    };
+}
+
+if (elements.confirmExportSummaryBtn) {
+    elements.confirmExportSummaryBtn.onclick = () => {
+        elements.exportSummaryModal.classList.add('hidden');
+        elements.exportModal.classList.remove('hidden');
+    };
+}
+
+if (elements.exportBackupBtn) {
+    elements.exportBackupBtn.onclick = () => {
+        const backupData = {
+            folders: state.folders,
+            tags: state.tags,
+            lastFolderId: state.lastFolderId,
+            songNames: state.songs.map(s => s.name) // Store names to help with matching on import
+        };
+        const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `MusicOrganizer_Backup_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+}
+
+if (elements.importBackupBtn) {
+    elements.importBackupBtn.onclick = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,application/json';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const backupData = JSON.parse(text);
+                
+                if (backupData.folders && Array.isArray(backupData.folders)) {
+                    state.folders = backupData.folders;
+                }
+                
+                if (backupData.tags && typeof backupData.tags === 'object' && !Array.isArray(backupData.tags)) {
+                    // We only restore tags if the number of songs matches or we map by name
+                    if (state.songs.length > 0) {
+                        if (backupData.songNames && backupData.songNames.length > 0) {
+                            // Map by name
+                            state.songs.forEach((song, index) => {
+                                const backupIndex = backupData.songNames.indexOf(song.name);
+                                if (backupIndex !== -1 && backupData.tags[backupIndex]) {
+                                    state.tags[index] = backupData.tags[backupIndex];
+                                }
+                            });
+                        } else {
+                            // Direct restore if no names to map, assuming same order
+                            state.tags = backupData.tags;
+                        }
+                    } else {
+                        // If queue is empty, just load the tags, they will apply when songs are added
+                        state.tags = backupData.tags;
+                    }
+                }
+                
+                if (backupData.lastFolderId) {
+                    state.lastFolderId = backupData.lastFolderId;
+                }
+
+                saveState();
+                render();
+                alert("Backup imported successfully!");
+            } catch (err) {
+                console.error("Failed to import backup:", err);
+                alert("Failed to import backup. Invalid file format.");
+            }
+        };
+        input.click();
+    };
+}
+
 // --- UI Event Listeners ---
 
 if (elements.exportBtn) {
     elements.exportBtn.onclick = () => {
-        const totalSize = state.songs.reduce((acc, s) => acc + s.file.size, 0);
-        if (totalSize > 1024 * 1024 * 1024) {
-            updateExportSelection('streaming');
-        }
-        elements.exportModal.classList.remove('hidden');
+        showExportSummary();
     };
 }
 
 if (elements.exportBtnLarge) {
     elements.exportBtnLarge.onclick = () => {
-        const totalSize = state.songs.reduce((acc, s) => acc + s.file.size, 0);
-        if (totalSize > 1024 * 1024 * 1024) {
-            updateExportSelection('streaming');
-        }
-        elements.exportModal.classList.remove('hidden');
+        showExportSummary();
     };
 }
 
@@ -862,6 +993,10 @@ function loadSong(index, autoplay = true) {
     }
     
     state.isTaggingLocked = true;
+    clearTimeout(state.taggingLockTimeout);
+    state.taggingLockTimeout = setTimeout(() => {
+        state.isTaggingLocked = false;
+    }, 1000);
     state.currentIndex = index;
     const song = state.songs[index];
     elements.currentSongName.textContent = song.name;
@@ -889,7 +1024,12 @@ function loadSong(index, autoplay = true) {
         elements.audio.play().then(() => {
             state.isPlaying = true;
             updatePlayIcon();
-        }).catch(() => {});
+        }).catch((err) => {
+            if (err.name === 'NotAllowedError') {
+                state.isPlaying = false;
+                updatePlayIcon();
+            }
+        });
     } else {
         state.isPlaying = false;
         updatePlayIcon();
@@ -900,6 +1040,8 @@ function loadSong(index, autoplay = true) {
     saveState();
 }
 
+elements.audio.loop = true;
+
 elements.audio.oncanplaythrough = () => {
     state.isTaggingLocked = false;
 };
@@ -907,7 +1049,7 @@ elements.audio.oncanplaythrough = () => {
 elements.audio.onerror = () => {
     console.error("Audio playback error");
     state.isTaggingLocked = false;
-    // Don't alert on every error to avoid spamming, but log it
+    elements.currentSongInfo.textContent = "Playback Error";
 };
 
 elements.audio.onended = () => {
@@ -982,6 +1124,89 @@ if (elements.saveConfirmBtn) {
 
 if (elements.cancelConfirmBtn) elements.cancelConfirmBtn.onclick = () => elements.confirmModal.classList.add('hidden');
 
+function renderQueue() {
+    if (!elements.queueList) return;
+    
+    const query = state.queueSearchQuery.toLowerCase();
+    const filteredIndices = [];
+    
+    for (let i = 0; i < state.songs.length; i++) {
+        const s = state.songs[i];
+        const folder = state.folders.find(f => f.id === state.tags[i]);
+        const folderName = folder ? folder.name.toLowerCase() : '';
+        const songName = s.name.toLowerCase();
+        const artist = (s.artist || '').toLowerCase();
+        const album = (s.album || '').toLowerCase();
+        
+        if (query && !songName.includes(query) && !folderName.includes(query) && !artist.includes(query) && !album.includes(query)) {
+            continue;
+        }
+        filteredIndices.push(i);
+    }
+
+    const totalItems = filteredIndices.length;
+    const itemHeight = 56; // Approximate height of a queue item
+    const containerHeight = elements.queueList.clientHeight || 400;
+    const buffer = 10;
+    
+    const scrollTop = elements.queueList.scrollTop;
+    
+    const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - buffer);
+    const endIndex = Math.min(totalItems - 1, Math.floor((scrollTop + containerHeight) / itemHeight) + buffer);
+    
+    elements.queueList.innerHTML = '';
+    
+    if (totalItems === 0) {
+        const emptyMsg = document.createElement('div');
+        emptyMsg.className = 'p-4 text-center text-[10px] text-gray-600 italic';
+        emptyMsg.textContent = 'No songs found.';
+        elements.queueList.appendChild(emptyMsg);
+        return;
+    }
+
+    const spacerTop = document.createElement('div');
+    spacerTop.style.height = `${startIndex * itemHeight}px`;
+    elements.queueList.appendChild(spacerTop);
+    
+    for (let i = startIndex; i <= endIndex; i++) {
+        const originalIndex = filteredIndices[i];
+        const s = state.songs[originalIndex];
+        const folder = state.folders.find(f => f.id === state.tags[originalIndex]);
+        
+        const isActive = state.currentIndex === originalIndex;
+        const item = document.createElement('div');
+        item.className = `p-3 rounded-xl flex items-center gap-3 cursor-pointer transition-all ${isActive ? 'bg-purple-500/20 border border-purple-500/30' : 'hover:bg-white/5'}`;
+        item.onclick = () => loadSong(originalIndex);
+        item.innerHTML = `
+            <span class="text-[10px] font-mono text-gray-600 w-4">${originalIndex + 1}</span>
+            <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-center gap-2">
+                    <p class="text-xs font-bold truncate ${isActive ? 'text-white' : 'text-gray-400'}">${ZIP_UTILS.sanitizeHTML(s.name)}</p>
+                    <span class="text-[9px] text-gray-500 font-mono whitespace-nowrap">${formatFileSize(s.file.size)}</span>
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                    ${folder ? `<p class="text-[8px] text-purple-400 font-bold uppercase">${ZIP_UTILS.sanitizeHTML(folder.name)}</p>` : ''}
+                    <p class="text-[8px] text-gray-500 truncate">${ZIP_UTILS.sanitizeHTML(s.artist || 'Unknown Artist')} • ${ZIP_UTILS.sanitizeHTML(s.album || 'Unknown Album')}</p>
+                </div>
+            </div>
+            ${state.tags[originalIndex] ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' : ''}
+        `;
+        elements.queueList.appendChild(item);
+    }
+    
+    const spacerBottom = document.createElement('div');
+    spacerBottom.style.height = `${Math.max(0, (totalItems - 1 - endIndex) * itemHeight)}px`;
+    elements.queueList.appendChild(spacerBottom);
+}
+
+// Add scroll listener once
+if (elements.queueList && !elements.queueList.dataset.scrollBound) {
+    elements.queueList.addEventListener('scroll', () => {
+        renderQueue();
+    });
+    elements.queueList.dataset.scrollBound = "true";
+}
+
 function render() {
     if (state.songs.length === 0) {
         elements.uploadArea.classList.remove('hidden');
@@ -1016,137 +1241,100 @@ function render() {
         const isLastUsed = state.lastFolderId === f.id;
         const count = folderCounts[f.id] || 0;
         const btn = document.createElement('div');
-        btn.className = `relative group p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 btn-active cursor-pointer ${
+        btn.className = `folder-card relative group p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 btn-active cursor-pointer ${
             isTagged ? 'bg-purple-600 border-purple-400 shadow-lg shadow-purple-500/20' : 
             isLastUsed ? 'bg-white/10 border-purple-500/40' : 
             'bg-white/5 border-transparent hover:border-white/10'
         }`;
+        btn.dataset.id = f.id;
         btn.innerHTML = `
             <span class="absolute top-2 left-3 text-[10px] font-bold opacity-30">${i + 1}</span>
-            <div class="absolute top-2 right-2 flex gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                <button class="rename-folder-btn p-1.5 bg-white/10 sm:bg-transparent hover:bg-white/20 rounded-lg" data-id="${f.id}"><i data-lucide="edit-2" class="w-3.5 h-3.5"></i></button>
-                <button class="delete-folder-btn p-1.5 bg-red-500/20 sm:bg-transparent hover:bg-red-500/30 text-red-400 rounded-lg" data-id="${f.id}"><i data-lucide="trash" class="w-3.5 h-3.5"></i></button>
-            </div>
-            <i data-lucide="${isTagged ? 'check-circle' : 'folder'}" class="w-6 h-6"></i>
+            ${isTagged ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>'}
             <div class="text-center w-full px-2">
                 <p class="text-xs font-bold truncate">${ZIP_UTILS.sanitizeHTML(f.name)}</p>
                 <p class="text-[9px] font-bold opacity-40 uppercase tracking-wider mt-0.5">${count} ${count === 1 ? 'song' : 'songs'}</p>
             </div>
         `;
-        btn.onclick = (e) => {
-            if (e.target.closest('button')) return;
-            tagSong(f.id);
-        };
-        
-        btn.querySelector('.rename-folder-btn').onclick = (e) => {
-            e.stopPropagation();
-            openFolderModal('Rename Folder', f.name, (newName) => {
-                if (state.folders.some(folder => folder.name.toLowerCase() === newName.toLowerCase() && folder.id !== f.id)) {
-                    alert('A folder with this name already exists.');
-                    return;
-                }
-                f.name = newName;
-                saveState();
-                render();
-            });
-        };
-        
-        btn.querySelector('.delete-folder-btn').onclick = (e) => {
-            e.stopPropagation();
-            openConfirmModal('Delete Folder', `Are you sure you want to delete "${f.name}"?`, () => {
-                state.folders = state.folders.filter(folder => folder.id !== f.id);
-                saveState();
-                render();
-            });
-        };
         
         elements.foldersGrid.appendChild(btn);
     });
 
-    elements.queueList.innerHTML = '';
-    const query = state.queueSearchQuery.toLowerCase();
+    renderQueue();
+}
+
+async function processFiles(files) {
+    if (files.length === 0) return;
     
-    // Performance: Limit rendered items in queue to 100 if no search, or 200 if searching
-    let renderedCount = 0;
-    const maxRender = query ? 200 : 100;
+    await updateProgress(0, "Reading metadata...", "Loading");
+    elements.progressModal.classList.remove('hidden');
+    
+    const newSongs = [];
+    let lastProgressTime = Date.now();
+    const extractMetadata = elements.extractMetadataToggle ? elements.extractMetadataToggle.checked : true;
 
-    for (let i = 0; i < state.songs.length; i++) {
-        if (renderedCount >= maxRender) {
-            const more = document.createElement('div');
-            more.className = 'p-4 text-center text-[10px] text-gray-600 italic';
-            more.textContent = `... and ${state.songs.length - i} more songs. Use search to find specific tracks.`;
-            elements.queueList.appendChild(more);
-            break;
+    for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        let meta = { artist: 'Unknown Artist', album: 'Unknown Album' };
+        if (extractMetadata) {
+            meta = await METADATA_UTILS.extract(f);
         }
-
-        const s = state.songs[i];
-        const folder = state.folders.find(f => f.id === state.tags[i]);
-        const folderName = folder ? folder.name.toLowerCase() : '';
-        const songName = s.name.toLowerCase();
-        const artist = (s.artist || '').toLowerCase();
-        const album = (s.album || '').toLowerCase();
+        newSongs.push({ name: f.name, file: f, ...meta });
         
-        if (query && !songName.includes(query) && !folderName.includes(query) && !artist.includes(query) && !album.includes(query)) {
-            continue;
+        const now = Date.now();
+        if (now - lastProgressTime > 100 || i === files.length - 1) {
+            await updateProgress(Math.round((i / files.length) * 100), `Loading: ${f.name}`);
+            lastProgressTime = now;
         }
-
-        renderedCount++;
-        const isActive = state.currentIndex === i;
-        const item = document.createElement('div');
-        item.className = `p-3 rounded-xl flex items-center gap-3 cursor-pointer transition-all ${isActive ? 'bg-purple-500/20 border border-purple-500/30' : 'hover:bg-white/5'}`;
-        item.onclick = () => loadSong(i);
-        item.innerHTML = `
-            <span class="text-[10px] font-mono text-gray-600 w-4">${i + 1}</span>
-            <div class="flex-1 min-w-0">
-                <div class="flex justify-between items-center gap-2">
-                    <p class="text-xs font-bold truncate ${isActive ? 'text-white' : 'text-gray-400'}">${ZIP_UTILS.sanitizeHTML(s.name)}</p>
-                    <span class="text-[9px] text-gray-500 font-mono whitespace-nowrap">${formatFileSize(s.file.size)}</span>
-                </div>
-                <div class="flex items-center gap-2 mt-0.5">
-                    ${folder ? `<p class="text-[8px] text-purple-400 font-bold uppercase">${ZIP_UTILS.sanitizeHTML(folder.name)}</p>` : ''}
-                    <p class="text-[8px] text-gray-500 truncate">${ZIP_UTILS.sanitizeHTML(s.artist || 'Unknown Artist')} • ${ZIP_UTILS.sanitizeHTML(s.album || 'Unknown Album')}</p>
-                </div>
-            </div>
-            ${state.tags[i] ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' : ''}
-        `;
-        elements.queueList.appendChild(item);
     }
+    
+    elements.progressModal.classList.add('hidden');
+    const wasEmpty = state.songs.length === 0;
+    state.songs = [...state.songs, ...newSongs];
+    if (wasEmpty) loadSong(state.currentIndex, false);
+    else render();
 }
 
 elements.fileInputs.forEach(input => {
     input.onchange = async (e) => {
         const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-        
-        await updateProgress(0, "Reading metadata...", "Loading");
-        elements.progressModal.classList.remove('hidden');
-        
-        const newSongs = [];
-        let lastProgressTime = Date.now();
-        for (let i = 0; i < files.length; i++) {
-            const f = files[i];
-            const meta = await METADATA_UTILS.extract(f);
-            newSongs.push({ name: f.name, file: f, ...meta });
-            
-            const now = Date.now();
-            if (now - lastProgressTime > 100 || i === files.length - 1) {
-                await updateProgress(Math.round((i / files.length) * 100), `Loading: ${f.name}`);
-                lastProgressTime = now;
-            }
-        }
-        
-        elements.progressModal.classList.add('hidden');
-        const wasEmpty = state.songs.length === 0;
-        state.songs = [...state.songs, ...newSongs];
-        if (wasEmpty) loadSong(state.currentIndex, false);
-        else render();
+        await processFiles(files);
     };
 });
+
+if (elements.uploadArea) {
+    elements.uploadArea.ondragover = (e) => {
+        e.preventDefault();
+        elements.uploadArea.classList.add('border-purple-500', 'bg-white/5');
+    };
+    elements.uploadArea.ondragleave = (e) => {
+        e.preventDefault();
+        elements.uploadArea.classList.remove('border-purple-500', 'bg-white/5');
+    };
+    elements.uploadArea.ondrop = async (e) => {
+        e.preventDefault();
+        elements.uploadArea.classList.remove('border-purple-500', 'bg-white/5');
+        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('audio/') || f.name.endsWith('.mp3') || f.name.endsWith('.wav') || f.name.endsWith('.ogg') || f.name.endsWith('.m4a'));
+        await processFiles(files);
+    };
+}
 
 elements.queueSearch.oninput = (e) => {
     state.queueSearchQuery = e.target.value;
     render();
 };
+
+function skipSong() {
+    if (state.currentIndex >= 0 && state.currentIndex < state.songs.length) {
+        if (state.currentIndex + 1 >= state.songs.length) {
+            elements.audio.pause();
+            state.isPlaying = false;
+            updatePlayIcon();
+        }
+        loadSong(state.currentIndex + 1);
+    }
+}
+
+if (elements.skipBtn) elements.skipBtn.onclick = skipSong;
 
 if (elements.playBtn) elements.playBtn.onclick = () => { if (state.isPlaying) elements.audio.pause(); else elements.audio.play(); state.isPlaying = !state.isPlaying; updatePlayIcon(); };
 if (elements.prevBtn) elements.prevBtn.onclick = () => loadSong(state.currentIndex - 1);
@@ -1162,6 +1350,15 @@ if (elements.audio) {
     };
 }
 if (elements.seekSlider) elements.seekSlider.oninput = () => { elements.audio.currentTime = (elements.seekSlider.value / 100) * elements.audio.duration; };
+
+if (elements.foldersGrid) {
+    elements.foldersGrid.addEventListener("click", (e) => {
+        const card = e.target.closest(".folder-card");
+        if (!card) return;
+        const id = card.dataset.id;
+        tagSong(id);
+    });
+}
 
 let folderModalCallback = null;
 function openFolderModal(title, initialValue, callback) {
@@ -1192,18 +1389,175 @@ if (elements.saveFolderBtn) {
 
 if (elements.cancelFolderBtn) elements.cancelFolderBtn.onclick = () => elements.folderModal.classList.add('hidden');
 
-if (elements.addFolderBtn) {
-    elements.addFolderBtn.onclick = () => {
+if (elements.manageAddFolderBtn) {
+    elements.manageAddFolderBtn.onclick = () => {
         openFolderModal('Add Folder', '', (name) => {
             if (state.folders.some(f => f.name.toLowerCase() === name.toLowerCase())) {
                 alert('A folder with this name already exists.');
                 return;
             }
             state.folders.push({ id: 'f' + Date.now(), name });
+            if (state.folders.length > 9) {
+                alert("Note: Keyboard shortcuts (1-9) are only supported for the first 9 folders.");
+            }
             saveState();
             render();
+            renderManageFolders();
         });
     };
+}
+
+if (elements.manageFoldersBtn) {
+    elements.manageFoldersBtn.onclick = () => {
+        renderManageFolders();
+        elements.manageFoldersModal.classList.remove('hidden');
+    };
+}
+
+if (elements.closeManageFoldersBtn) {
+    elements.closeManageFoldersBtn.onclick = () => {
+        elements.manageFoldersModal.classList.add('hidden');
+    };
+}
+
+function renderManageFolders() {
+    if (!elements.manageFoldersList) return;
+    elements.manageFoldersList.innerHTML = '';
+    
+    if (state.folders.length === 0) {
+        elements.manageFoldersList.innerHTML = '<p class="text-xs text-gray-500 text-center py-4">No folders created yet.</p>';
+        return;
+    }
+
+    state.folders.forEach((f, i) => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-3 bg-white/5 border border-white/5 rounded-xl group';
+        item.dataset.id = f.id;
+
+        item.innerHTML = `
+            <div class="flex items-center gap-3 w-full">
+                <div class="w-8 h-8 rounded-lg ${i < 9 ? 'bg-purple-500/20 text-purple-400' : 'bg-white/5 text-gray-500'} font-bold flex items-center justify-center text-xs shrink-0">
+                    ${i + 1}
+                </div>
+                
+                <div class="flex-1 min-w-0 flex items-center">
+                    <span class="text-sm font-bold truncate folder-name-display block w-full">${ZIP_UTILS.sanitizeHTML(f.name)}</span>
+                    <input type="text" class="hidden w-full bg-black/50 border border-purple-500/50 rounded px-2 py-1 text-sm font-bold text-white outline-none folder-name-input" value="${ZIP_UTILS.sanitizeHTML(f.name)}">
+                </div>
+                
+                <div class="flex items-center gap-1 shrink-0">
+                    <button class="manage-up-btn p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors ${i === 0 ? 'opacity-30 cursor-not-allowed' : ''}" title="Move Up" ${i === 0 ? 'disabled' : ''}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>
+                    </button>
+                    <button class="manage-down-btn p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors ${i === state.folders.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}" title="Move Down" ${i === state.folders.length - 1 ? 'disabled' : ''}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="w-px h-6 bg-white/10 mx-1"></div> <button class="manage-rename-btn p-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg transition-colors" title="Edit">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                    </button>
+                    <button class="manage-save-btn hidden p-2 bg-purple-500/20 hover:bg-purple-500/40 text-purple-400 rounded-lg transition-colors" title="Save">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    </button>
+                    <button class="manage-delete-btn p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors" title="Delete">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        const upBtn = item.querySelector('.manage-up-btn');
+        const downBtn = item.querySelector('.manage-down-btn');
+        const renameBtn = item.querySelector('.manage-rename-btn');
+        const saveBtn = item.querySelector('.manage-save-btn');
+        const deleteBtn = item.querySelector('.manage-delete-btn');
+        const nameDisplay = item.querySelector('.folder-name-display');
+        const nameInput = item.querySelector('.folder-name-input');
+
+        if (upBtn) upBtn.onclick = () => {
+            if (i > 0) {
+                const temp = state.folders[i];
+                state.folders[i] = state.folders[i - 1];
+                state.folders[i - 1] = temp;
+                saveState();
+                render();
+                renderManageFolders();
+            }
+        };
+
+        if (downBtn) downBtn.onclick = () => {
+            if (i < state.folders.length - 1) {
+                const temp = state.folders[i];
+                state.folders[i] = state.folders[i + 1];
+                state.folders[i + 1] = temp;
+                saveState();
+                render();
+                renderManageFolders();
+            }
+        };
+
+        const toggleEdit = (editing) => {
+            if (editing) {
+                nameDisplay.classList.add('hidden');
+                nameInput.classList.remove('hidden');
+                renameBtn.classList.add('hidden');
+                saveBtn.classList.remove('hidden');
+                nameInput.focus();
+            } else {
+                nameDisplay.classList.remove('hidden');
+                nameInput.classList.add('hidden');
+                renameBtn.classList.remove('hidden');
+                saveBtn.classList.add('hidden');
+            }
+        };
+
+        if (renameBtn) renameBtn.onclick = () => toggleEdit(true);
+        
+        const saveEdit = () => {
+            const newName = nameInput.value.trim();
+            if (newName && newName !== f.name) {
+                if (state.folders.some(folder => folder.id !== f.id && folder.name.toLowerCase() === newName.toLowerCase())) {
+                    alert('A folder with this name already exists.');
+                    nameInput.value = f.name;
+                    toggleEdit(false);
+                    return;
+                }
+                f.name = newName;
+                saveState();
+                render();
+                renderManageFolders();
+            } else {
+                toggleEdit(false);
+            }
+        };
+
+        if (saveBtn) saveBtn.onclick = saveEdit;
+        
+        if (nameInput) {
+            nameInput.onkeydown = (e) => {
+                if (e.key === 'Enter') saveEdit();
+                else if (e.key === 'Escape') {
+                    nameInput.value = f.name;
+                    toggleEdit(false);
+                }
+            };
+        }
+
+        if (deleteBtn) deleteBtn.onclick = () => {
+            openConfirmModal('Delete Folder', `Are you sure you want to delete "${f.name}"? Songs in this folder will be unclassified.`, () => {
+                state.folders = state.folders.filter(folder => folder.id !== f.id);
+                for (const index in state.tags) {
+                    if (state.tags[index] === f.id) {
+                        delete state.tags[index];
+                    }
+                }
+                saveState();
+                render();
+                renderManageFolders();
+            });
+        };
+
+        elements.manageFoldersList.appendChild(item);
+    });
 }
 
 if (elements.resetAppBtn) {
@@ -1233,7 +1587,7 @@ if (elements.resetAppBtn) {
 if (elements.clearQueueBtn) {
     elements.clearQueueBtn.onclick = () => { 
         openConfirmModal('Clear Queue', 'This will remove all songs from the queue. Tags will be preserved if you re-upload. Are you sure?', () => {
-            state.songs = []; state.tags = {}; state.currentIndex = 0; state.history = []; state.lastFolderId = null; Object.values(state.objectUrls).forEach(URL.revokeObjectURL); state.objectUrls = {}; saveState(); render(); 
+            state.songs = []; state.tags = {}; state.currentIndex = 0; state.history = []; state.lastFolderId = null; Object.values(state.objectUrls).forEach(url => URL.revokeObjectURL(url)); state.objectUrls = {}; saveState(); render(); 
         });
     };
 }
@@ -1314,6 +1668,9 @@ window.onkeydown = (e) => {
         elements.nextBtn.click(); 
     } else if (e.key === 'ArrowLeft') {
         elements.prevBtn.click(); 
+    } else if (e.key === 's' || e.key === 'S' || e.key === 'Shift') {
+        e.preventDefault();
+        skipSong();
     } else if (e.key === 'z' && (e.ctrlKey || e.metaKey)) { 
         e.preventDefault(); 
         undo(); 
@@ -1322,6 +1679,13 @@ window.onkeydown = (e) => {
         if (f) tagSong(f.id); 
     } 
 };
+
+window.addEventListener('beforeunload', (e) => {
+    if (state.songs.length > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
 
 render();
 updateExportSelection(state.selectedExportMethod);

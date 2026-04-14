@@ -22,7 +22,10 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('fetch', (event) => {
   // Skip caching for audio blobs, object URLs, and uploaded files
-  if (event.request.url.startsWith('blob:') || event.request.url.includes('audio')) {
+  if (event.request.url.startsWith('blob:')) {
+    return;
+  }
+  if (event.request.url.includes('audio')) {
     return fetch(event.request);
   }
 

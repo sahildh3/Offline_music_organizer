@@ -86,6 +86,13 @@ const ZIP_UTILS = {
         view.setUint32(16, offset, true);
         view.setUint16(20, 0, true);
         return eocd;
+    },
+    
+    sanitizeFilename: (name, fallback = "unnamed") => {
+        if (!name) return fallback;
+        // eslint-disable-next-line no-control-regex
+        const sanitized = name.replace(/[<>:"/\\|?*]/g, '_').replace(/[\x00-\x1f]/g, '_').trim();
+        return sanitized || fallback;
     }
 };
 
@@ -150,8 +157,8 @@ self.onmessage = async (e) => {
                 
                 const { song, index } = sortedItems[i];
                 const folder = folders.find(f => f.id === tags[index]);
-                const folderName = (folder ? folder.name : "Unclassified").replace(/[<>:"/\\|?*]/g, '_').trim() || "Unclassified";
-                const songName = song.name.replace(/[<>:"/\\|?*]/g, '_').trim() || `song_${index}.mp3`;
+                const folderName = ZIP_UTILS.sanitizeFilename(folder ? folder.name : "Unclassified", "Unclassified");
+                const songName = ZIP_UTILS.sanitizeFilename(song.name, `song_${index}.mp3`);
                 const filename = `${folderName}/${songName}`;
 
                 const now = Date.now();

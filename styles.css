@@ -4,8 +4,8 @@ body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; back
 .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
 .folders-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; max-height: 400px; overflow-y: auto; padding-right: 0.5rem; }
 @media (max-width: 640px) {
-    .folders-container { display: flex; overflow-x: auto; overflow-y: hidden; padding-bottom: 1rem; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; max-height: none; }
-    .folders-container > * { flex: 0 0 140px; scroll-snap-align: start; }
+    .folders-container { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; max-height: none; padding-right: 0; }
+    .folders-container > * { flex: none; scroll-snap-align: none; }
 }
 input[type="range"] { -webkit-appearance: none; background: transparent; }
 input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #a855f7; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px rgba(168, 85, 247, 0.4); }
