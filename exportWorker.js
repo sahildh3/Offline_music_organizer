@@ -99,7 +99,7 @@ const ZIP_UTILS = {
 let abortController = null;
 
 self.onmessage = async (e) => {
-    const { type, songs, folders, tags, fileHandle } = e.data;
+    const { type, items, fileHandle } = e.data;
 
     if (type === 'abort') {
         if (abortController) abortController.abort();
@@ -109,17 +109,15 @@ self.onmessage = async (e) => {
     if (type === 'start') {
         abortController = new AbortController();
         const signal = abortController.signal;
+        let writable;
 
         try {
-            const writable = await fileHandle.createWritable();
+            writable = await fileHandle.createWritable();
             const entries = [];
             let currentOffset = 0;
-            const totalBytes = songs.reduce((acc, s) => acc + s.file.size, 0);
+            const totalBytes = items.reduce((acc, item) => acc + item.file.size, 0);
             let processedBytes = 0;
             const table = getCRC32Table();
-
-            // Task 5: Sort files by size for faster perceived progress
-            const sortedItems = songs.map((song, index) => ({ song, index })).sort((a, b) => a.song.file.size - b.song.file.size);
 
             let lastProgressTime = Date.now();
             let lastProgressBytes = 0;
@@ -131,20 +129,24 @@ self.onmessage = async (e) => {
             let writePromise = Promise.resolve();
 
             const flushBuffer = async () => {
+                if (signal.aborted) throw new Error('AbortError');
                 if (bufferOffset > 0) {
                     const chunk = writeBuffer.slice(0, bufferOffset);
                     await writePromise;
+                    if (signal.aborted) throw new Error('AbortError');
                     writePromise = writable.write(chunk);
                     bufferOffset = 0;
                 }
             };
 
             const writeData = async (data) => {
+                if (signal.aborted) throw new Error('AbortError');
                 if (bufferOffset + data.length > WRITE_BUFFER_SIZE) {
                     await flushBuffer();
                 }
                 if (data.length > WRITE_BUFFER_SIZE) {
                     await writePromise;
+                    if (signal.aborted) throw new Error('AbortError');
                     writePromise = writable.write(data);
                 } else {
                     writeBuffer.set(data, bufferOffset);
@@ -152,14 +154,10 @@ self.onmessage = async (e) => {
                 }
             };
 
-            for (let i = 0; i < sortedItems.length; i++) {
+            for (let i = 0; i < items.length; i++) {
                 if (signal.aborted) throw new Error('AbortError');
                 
-                const { song, index } = sortedItems[i];
-                const folder = folders.find(f => f.id === tags[index]);
-                const folderName = ZIP_UTILS.sanitizeFilename(folder ? folder.name : "Unclassified", "Unclassified");
-                const songName = ZIP_UTILS.sanitizeFilename(song.name, `song_${index}.mp3`);
-                const filename = `${folderName}/${songName}`;
+                const { file, filename, songName } = items[i];
 
                 const now = Date.now();
                 if (now - lastProgressTime > 100 || processedBytes - lastProgressBytes > 1024 * 1024) {
@@ -173,13 +171,13 @@ self.onmessage = async (e) => {
                 }
 
                 const method = 0; // STORE
-                const header = ZIP_UTILS.createLocalHeader(filename, song.file.size, 0, 0, method, true);
+                const header = ZIP_UTILS.createLocalHeader(filename, file.size, 0, 0, method, true);
                 await writeData(header);
 
                 let crc = 0 ^ 0xFFFFFFFF;
                 let bytesWritten = 0;
 
-                const reader = song.file.stream().getReader();
+                const reader = file.stream().getReader();
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
@@ -207,12 +205,12 @@ self.onmessage = async (e) => {
                 }
                 crc = (crc ^ 0xFFFFFFFF) >>> 0;
 
-                const descriptor = ZIP_UTILS.createDataDescriptor(song.file.size, bytesWritten, crc);
+                const descriptor = ZIP_UTILS.createDataDescriptor(file.size, bytesWritten, crc);
                 await writeData(descriptor);
 
                 entries.push({ 
                     filename, 
-                    size: song.file.size, 
+                    size: file.size, 
                     crc, 
                     offset: currentOffset, 
                     compressedSize: bytesWritten, 
@@ -239,10 +237,14 @@ self.onmessage = async (e) => {
             await flushBuffer();
             await writePromise;
             await writable.close();
+            writable = null;
 
             self.postMessage({ type: 'done' });
 
         } catch (error) {
+            if (writable) {
+                try { await writable.abort(); } catch (e) { console.warn("Failed to abort writable", e); }
+            }
             self.postMessage({ 
                 type: 'error', 
                 message: error.message,

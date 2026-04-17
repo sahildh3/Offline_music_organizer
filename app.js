@@ -1,10 +1,10 @@
 const state = {
     songs: [],
     folders: JSON.parse(localStorage.getItem('mo_folders')) || [
-        { id: 'f1', name: 'Music' },
-        { id: 'f2', name: 'Podcast' },
-        { id: 'f3', name: 'Audiobook' },
-        { id: 'f4', name: 'Instrumental' }
+        { id: 'f1', name: 'Music', colorIndex: 1 },
+        { id: 'f2', name: 'Podcast', colorIndex: 2 },
+        { id: 'f3', name: 'Audiobook', colorIndex: 3 },
+        { id: 'f4', name: 'Instrumental', colorIndex: 4 }
     ],
     tags: JSON.parse(localStorage.getItem('mo_tags')) || {},
     currentIndex: parseInt(localStorage.getItem('mo_index')) || 0,
@@ -22,6 +22,11 @@ const state = {
     objectUrls: {}, // Track URLs for memory safety
     taggingLockTimeout: null
 };
+
+// Ensure all folders have a colorIndex
+state.folders.forEach((f, i) => {
+    if (!f.colorIndex) f.colorIndex = (i % 6) + 1;
+});
 
 // --- ZIP Utility (Vanilla JS) ---
 // This implements a basic ZIP writer using standard browser APIs
@@ -425,17 +430,40 @@ async function exportStreaming() {
     initExportWorker();
     state.exportAbortController = new AbortController();
     
+    // Pre-compute paths and group by folder to minimize worker payload
+    const grouped = {};
+    state.songs.forEach((song, index) => {
+        const folderId = state.tags[index];
+        if (!grouped[folderId]) grouped[folderId] = [];
+        grouped[folderId].push({ song, index });
+    });
+    
+    const items = Object.values(grouped).flat().map(({ song, index }) => {
+        const folder = state.folders.find(f => f.id === state.tags[index]);
+        const folderName = ZIP_UTILS.sanitizeFilename(folder ? folder.name : "Unclassified", "Unclassified");
+        const songName = ZIP_UTILS.sanitizeFilename(song.name, `song_${index}.mp3`);
+        return {
+            file: song.file,
+            filename: `${folderName}/${songName}`,
+            songName: songName
+        };
+    });
+
     state.exportWorker.postMessage({
         type: 'start',
-        songs: state.songs,
-        folders: state.folders,
-        tags: state.tags,
+        items: items,
         fileHandle: fileHandle
     });
 }
 
 async function exportBatched() {
     if (state.songs.length === 0) return;
+
+    const totalBytes = state.songs.reduce((acc, s) => acc + s.file.size, 0);
+    if (totalBytes > 800 * 1024 * 1024) {
+        handleExportError(new Error("Total library size exceeds 800MB limit for Batched Export. Please use Streaming Export instead."));
+        return;
+    }
 
     elements.exportModal.classList.add('hidden');
     elements.progressModal.classList.remove('hidden');
@@ -448,7 +476,12 @@ async function exportBatched() {
     state.exportAbortController = new AbortController();
     const signal = state.exportAbortController.signal;
 
-    const MAX_BATCH_SIZE = 300 * 1024 * 1024; // 300MB limit per batch
+    const deviceMemory = navigator.deviceMemory || 4;
+    let MAX_BATCH_SIZE;
+    if (deviceMemory <= 2) MAX_BATCH_SIZE = 150 * 1024 * 1024;
+    else if (deviceMemory <= 4) MAX_BATCH_SIZE = 300 * 1024 * 1024;
+    else MAX_BATCH_SIZE = 400 * 1024 * 1024; // Hard cap at 400MB
+
     let currentBatch = [];
     let currentBatchSize = 0;
     let batchCount = 1;
@@ -464,14 +497,16 @@ async function exportBatched() {
             if (signal.aborted) throw new Error('AbortError');
             
             try {
-                const data = new Uint8Array(await item.song.file.arrayBuffer());
+                let data = new Uint8Array(await item.song.file.arrayBuffer());
                 const crc = ZIP_UTILS.crc32(data);
                 
                 let compressedData = data;
                 let method = 0; // Default to STORE
                 
+                const COMPRESSION_THRESHOLD = 2 * 1024 * 1024; // 2MB
+                
                 // Optional compression
-                if (window.CompressionStream && data.length > 0) {
+                if (window.CompressionStream && data.length > 0 && data.length < COMPRESSION_THRESHOLD) {
                     try {
                         const cs = new CompressionStream('deflate-raw');
                         const writer = cs.writable.getWriter();
@@ -504,11 +539,15 @@ async function exportBatched() {
                 entries.push({ filename: item.filename, size: data.length, crc, offset, compressedSize: compressedData.length, method });
                 offset += header.length + compressedData.length;
                 
-                // Yield to main thread
+                // Nullify large references immediately
+                data = null;
+                compressedData = null;
+                
+                // Yield to main thread and allow GC
                 await new Promise(resolve => setTimeout(resolve, 0));
             } catch (err) {
                 console.error(`Failed to process ${item.song.name} in batch:`, err);
-                // Skip this file in the batch
+                // Skip this file in the batch safely
             }
         }
 
@@ -536,28 +575,44 @@ async function exportBatched() {
         entries.length = 0;
         
         // Yield to allow GC
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 0));
     };
 
     try {
-        const totalSongs = state.songs.length;
         const totalBytes = state.songs.reduce((acc, s) => acc + s.file.size, 0);
         let processedBytes = 0;
         let lastProgressTime = Date.now();
         let lastProgressBytes = 0;
 
-        const sortedItems = state.songs.map((song, index) => ({ song, index })).sort((a, b) => a.song.file.size - b.song.file.size);
+        const LOW_MEMORY_MODE = totalBytes > 500 * 1024 * 1024;
+        if (LOW_MEMORY_MODE) {
+            console.warn("LOW_MEMORY_MODE enabled: Batched export is processing a large dataset. File references are preserved to maintain UI/playback, relying on strict GC yields instead of aggressive deletion.");
+        }
 
-        for (let i = 0; i < totalSongs; i++) {
+        const grouped = {};
+        state.songs.forEach((song, index) => {
+            const folderId = state.tags[index];
+            if (!grouped[folderId]) grouped[folderId] = [];
+            grouped[folderId].push({ song, index });
+        });
+        const items = Object.values(grouped).flat();
+
+        for (let i = 0; i < items.length; i++) {
             if (signal.aborted) throw new Error('AbortError');
-            const { song, index } = sortedItems[i];
+            const { song, index } = items[i];
             const folder = state.folders.find(f => f.id === state.tags[index]);
             const folderName = folder ? folder.name : "Unclassified";
             const filename = `${ZIP_UTILS.sanitizeFilename(folderName)}/${ZIP_UTILS.sanitizeFilename(song.name)}`;
             const fileSize = song.file.size;
 
             if (fileSize > MAX_BATCH_SIZE) {
-                console.warn(`File ${song.name} exceeds batch size limit (${MAX_BATCH_SIZE} bytes). Skipping.`);
+                console.warn(`File ${song.name} exceeds batch size limit (${MAX_BATCH_SIZE} bytes). Processing as single-file batch.`);
+                if (currentBatchSize > 0) {
+                    await processBatch(currentBatch, batchCount++);
+                    currentBatch = [];
+                    currentBatchSize = 0;
+                }
+                await processBatch([{ song, filename }], batchCount++);
                 processedBytes += fileSize;
                 continue;
             }
@@ -620,11 +675,17 @@ async function exportDirectSync() {
         let lastProgressTime = Date.now();
         let lastProgressBytes = 0;
 
-        const sortedItems = state.songs.map((song, index) => ({ song, index })).sort((a, b) => a.song.file.size - b.song.file.size);
+        const grouped = {};
+        state.songs.forEach((song, index) => {
+            const folderId = state.tags[index];
+            if (!grouped[folderId]) grouped[folderId] = [];
+            grouped[folderId].push({ song, index });
+        });
+        const items = Object.values(grouped).flat();
 
-        for (let i = 0; i < sortedItems.length; i++) {
+        for (let i = 0; i < items.length; i++) {
             if (signal.aborted) throw new Error('AbortError');
-            const { song, index } = sortedItems[i];
+            const { song, index } = items[i];
             const folder = state.folders.find(f => f.id === state.tags[index]);
             const folderName = ZIP_UTILS.sanitizeFilename(folder ? folder.name : "Unclassified", "Unclassified");
             const songName = ZIP_UTILS.sanitizeFilename(song.name, `song_${index}.mp3`);
@@ -741,6 +802,13 @@ if (elements.cancelExportSummaryBtn) {
 if (elements.confirmExportSummaryBtn) {
     elements.confirmExportSummaryBtn.onclick = () => {
         elements.exportSummaryModal.classList.add('hidden');
+        
+        // Suggest streaming if > 500MB
+        const totalBytes = state.songs.reduce((acc, s) => acc + s.file.size, 0);
+        if (totalBytes > 500 * 1024 * 1024 && state.selectedExportMethod === 'batch') {
+            updateExportSelection('streaming');
+        }
+        
         elements.exportModal.classList.remove('hidden');
     };
 }
@@ -917,8 +985,13 @@ if (elements.startExportBtn) {
         const totalBytes = state.songs.reduce((acc, s) => acc + s.file.size, 0);
         const ZIP_LIMIT = 4 * 1024 * 1024 * 1024; // 4GB
 
-        if (state.selectedExportMethod !== 'sync' && totalBytes > ZIP_LIMIT) {
-            alert("Export size exceeds the 4GB limit for standard ZIP files. Please split your export or use 'Direct Sync'.");
+        if (totalBytes > ZIP_LIMIT) {
+            alert("Export exceeds ZIP limit (~4GB). Split your library.");
+            throw new Error("Export size exceeds 4GB limit.");
+        }
+
+        if (state.selectedExportMethod === 'batch' && totalBytes > 800 * 1024 * 1024) {
+            alert("Batched export unsafe for large datasets (>800MB). Use Streaming Export.");
             return;
         }
 
@@ -1061,8 +1134,10 @@ function updatePlayIcon() {
     if (!elements.playBtn) return;
     if (state.isPlaying) {
         elements.playBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+        elements.playBtn.classList.add('playing-pulse');
     } else {
         elements.playBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 ml-1"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+        elements.playBtn.classList.remove('playing-pulse');
     }
 }
 
@@ -1173,23 +1248,21 @@ function renderQueue() {
         const s = state.songs[originalIndex];
         const folder = state.folders.find(f => f.id === state.tags[originalIndex]);
         
+        const folderColorVar = folder ? `var(--folder-${folder.colorIndex}-end)` : 'transparent';
+        
         const isActive = state.currentIndex === originalIndex;
         const item = document.createElement('div');
-        item.className = `p-3 rounded-xl flex items-center gap-3 cursor-pointer transition-all ${isActive ? 'bg-purple-500/20 border border-purple-500/30' : 'hover:bg-white/5'}`;
+        item.className = `queue-item flex items-center gap-3 cursor-pointer transition-all ${isActive ? 'queue-item-active' : ''}`;
         item.onclick = () => loadSong(originalIndex);
         item.innerHTML = `
-            <span class="text-[10px] font-mono text-gray-600 w-4">${originalIndex + 1}</span>
+            ${folder ? `<span class="queue-tag shrink-0" style="--folder-end: ${folderColorVar}">${ZIP_UTILS.sanitizeHTML(folder.name.substring(0,4).toUpperCase())}</span>` : `<span class="text-[10px] font-mono text-gray-600 w-4 shrink-0 text-center">${originalIndex + 1}</span>`}
             <div class="flex-1 min-w-0">
                 <div class="flex justify-between items-center gap-2">
                     <p class="text-xs font-bold truncate ${isActive ? 'text-white' : 'text-gray-400'}">${ZIP_UTILS.sanitizeHTML(s.name)}</p>
                     <span class="text-[9px] text-gray-500 font-mono whitespace-nowrap">${formatFileSize(s.file.size)}</span>
                 </div>
-                <div class="flex items-center gap-2 mt-0.5">
-                    ${folder ? `<p class="text-[8px] text-purple-400 font-bold uppercase">${ZIP_UTILS.sanitizeHTML(folder.name)}</p>` : ''}
-                    <p class="text-[8px] text-gray-500 truncate">${ZIP_UTILS.sanitizeHTML(s.artist || 'Unknown Artist')} • ${ZIP_UTILS.sanitizeHTML(s.album || 'Unknown Album')}</p>
-                </div>
             </div>
-            ${state.tags[originalIndex] ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' : ''}
+            ${state.tags[originalIndex] ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 text-green-500 shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>' : ''}
         `;
         elements.queueList.appendChild(item);
     }
@@ -1236,16 +1309,28 @@ function render() {
     });
 
     elements.foldersGrid.innerHTML = '';
+    
+    // Update player glow based on current tag
+    const currentFolderId = state.tags[state.currentIndex];
+    const currentFolder = state.folders.find(f => f.id === currentFolderId);
+    if (currentFolder) {
+        document.documentElement.style.setProperty('--player-glow', `var(--folder-${currentFolder.colorIndex}-end)`);
+    } else {
+        document.documentElement.style.setProperty('--player-glow', '#a855f7');
+    }
+
     state.folders.forEach((f, i) => {
         const isTagged = state.tags[state.currentIndex] === f.id;
         const isLastUsed = state.lastFolderId === f.id;
         const count = folderCounts[f.id] || 0;
         const btn = document.createElement('div');
         btn.className = `folder-card relative group p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 btn-active cursor-pointer ${
-            isTagged ? 'bg-purple-600 border-purple-400 shadow-lg shadow-purple-500/20' : 
+            isTagged ? 'folder-active' : 
             isLastUsed ? 'bg-white/10 border-purple-500/40' : 
             'bg-white/5 border-transparent hover:border-white/10'
         }`;
+        btn.style.setProperty('--folder-start', `var(--folder-${f.colorIndex}-start)`);
+        btn.style.setProperty('--folder-end', `var(--folder-${f.colorIndex}-end)`);
         btn.dataset.id = f.id;
         btn.innerHTML = `
             <span class="absolute top-2 left-3 text-[10px] font-bold opacity-30">${i + 1}</span>
@@ -1396,7 +1481,8 @@ if (elements.manageAddFolderBtn) {
                 alert('A folder with this name already exists.');
                 return;
             }
-            state.folders.push({ id: 'f' + Date.now(), name });
+            const newColorIndex = (state.folders.length % 6) + 1;
+            state.folders.push({ id: 'f' + Date.now(), name, colorIndex: newColorIndex });
             if (state.folders.length > 9) {
                 alert("Note: Keyboard shortcuts (1-9) are only supported for the first 9 folders.");
             }
@@ -1649,7 +1735,8 @@ document.querySelectorAll('.preset-pack-btn').forEach(btn => {
             PRESET_PACKS[pack].forEach(name => {
                 const exists = state.folders.some(f => f.name.toLowerCase() === name.toLowerCase());
                 if (!exists) {
-                    state.folders.push({ id: `p${pack}${Date.now()}${Math.random()}`, name });
+                    const newColorIndex = (state.folders.length % 6) + 1;
+                    state.folders.push({ id: `p${pack}${Date.now()}${Math.random()}`, name, colorIndex: newColorIndex });
                 }
             });
             saveState();

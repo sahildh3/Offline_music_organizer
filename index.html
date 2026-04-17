@@ -6,8 +6,12 @@
     <title>Music Organizer Tool</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#000000">
-    <link rel="stylesheet" href="./styles.css">
     <link rel="stylesheet" href="./tailwind.css">
+    <link rel="stylesheet" href="./styles.css">
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-purple-500/30">
     <header class="border-b border-white/5 px-6 py-4 flex items-center justify-between bg-black/80 backdrop-blur-md sticky top-0 z-50">
@@ -21,24 +25,28 @@
             </div>
         </div>
         <div class="flex items-center gap-2 sm:gap-3">
-            <button id="helpBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Keyboard Shortcuts">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <button id="helpBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 transition-all" title="Keyboard Shortcuts">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </button>
-            <button id="shareBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Share App">
+            <button id="themeToggleBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 transition-all" title="Toggle Theme">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 theme-moon"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 theme-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            </button>
+            <button id="shareBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 transition-all hidden" title="Share App">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             </button>
-            <button id="installBtn" class="hidden flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 text-purple-400 font-bold rounded-lg hover:bg-purple-500/20 transition-all text-xs border border-purple-500/20">
+            <button id="installBtn" class="hidden flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 text-purple-400 font-bold rounded-full hover:bg-purple-500/20 transition-all text-xs border border-purple-500/20">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
                 <span class="hidden sm:inline">Install</span>
             </button>
-            <label class="cursor-pointer px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
+            <label class="cursor-pointer px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full text-sm font-bold transition-colors flex items-center gap-2 border border-white/10">
                 <input type="file" id="fileInput" multiple accept="audio/*" class="hidden">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 <span class="hidden sm:inline">Add Songs</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m9 18 6-6-6-6"/></svg>
             </label>
-            <button id="importBackupBtn" class="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-bold transition-colors hidden sm:block" title="Import Backup">Import Backup</button>
-            <button id="exportBackupBtn" class="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-bold transition-colors hidden sm:block" title="Export Backup">Export Backup</button>
-            <button id="exportBtn" class="px-4 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-all shadow-lg active:scale-95">Export Options</button>
+            <button id="importBackupBtn" class="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-full text-sm font-bold transition-colors hidden" title="Import Backup">Import Backup</button>
+            <button id="exportBackupBtn" class="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-full text-sm font-bold transition-colors hidden" title="Export Backup">Export Backup</button>
+            <button id="exportBtn" class="px-4 py-2 bg-white text-black font-bold rounded-full hover:bg-gray-200 disabled:opacity-50 transition-all shadow-lg active:scale-95 hidden">Export Options</button>
         </div>
     </header>
 
@@ -500,6 +508,17 @@
             </div>
         </div>
     </div>
+    <script>
+        // Theme Toggle Logic
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    </script>
     <script src="./app.js"></script>
 </body>
 </html>
