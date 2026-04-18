@@ -17,13 +17,27 @@ The **Music Organizer Tool** allows you to quickly classify and organize your mu
 - **Advanced Export:** Multiple export methods optimized for different library sizes and devices.
 - **Keyboard Shortcuts:** Optimized for speed with dedicated hotkeys for professional workflows.
 
+## 🏗️ Architecture & Stability (Release Polish)
+
+- **Memory Safety Guards:** Enforces an upfront 800MB library size limit for batched exports to prevent RAM exhaustion and browser crashes, pushing users toward streaming exports for massive libraries.
+- **Worker Transfer Optimization:** The Streaming ZIP exporter is optimized to minimize payload sizes during main-thread-to-worker transfer, heavily reducing memory overhead from structured cloning.
+- **Robust Theming & Styling:** Built on a stable design foundation leveraging CSS variables. UI states (`dark`/`light`) and folder colors are dynamically linked to application data, ensuring UI consistency without fragile CSS overrides (`!important`).
+- **Resilient Build Pipeline:** Safely structures static assets during build for lightweight deployment architectures.
+
+## 🎨 UI & Theme System
+
+The application features a refined, intentional design system:
+- **Minimal Monochrome Base:** Flat surfaces, subtle borders, and smooth transitions.
+- **Functional Folder Colors:** A stable generated palette is assigned to folders for quick visual identification.
+- **Dark/Light Mode:** Full support for both themes, controlled via a toggle in the header. Preferences are saved locally to avoid flashes of unstyled UI.
+
 ## 📦 Export Methods
 
 | Method | Best For | Compatibility |
 |--------|----------|---------------|
 | **Streaming ZIP** | Large Libraries (100+ songs) | All Browsers (Desktop & Mobile) |
 | **Direct Sync** | Professional Workflow | Desktop Chrome / Edge / Brave |
-| **Batched ZIPs** | Low Memory Environments | All Browsers |
+| **Batched ZIPs** | Low Memory Environments (<800MB) | All Browsers |
 
 > **Note:** Browser security prevents "Direct Sync" from working inside iframes. Open the app in a new tab to enable advanced file system features.
 
@@ -42,7 +56,7 @@ The **Music Organizer Tool** allows you to quickly classify and organize your mu
 - **100% Local:** All processing happens in your browser's memory. No tracking, no uploads.
 - **XSS Protection:** All user-provided metadata and folder names are sanitized before rendering.
 - **Path Traversal Prevention:** Filenames are strictly sanitized to ensure safe directory structures during export.
-- **Memory Safety:** Automatic cleanup of audio object URLs to prevent browser crashes during long sessions.
+- **Memory Safety:** Automatic cleanup of audio object URLs and optimized background payload handling prevent browser crashes.
 
 ## 🛠️ Built With
 
@@ -54,35 +68,14 @@ The **Music Organizer Tool** allows you to quickly classify and organize your mu
 ## ⚠️ Limitations
 
 - **Maximum ZIP size:** ~4GB (standard ZIP format limit).
-- **Batch export:** Limited and may fail for large files; only recommended for small datasets (<1GB).
-- **Streaming export:** Recommended for large libraries to ensure stability.
-
-### Why ZIP64 is not implemented
-
-This project uses standard ZIP format for maximum browser compatibility.
-
-ZIP64 support (for files >4GB) is intentionally not implemented due to:
-- Limited browser support for large binary structures
-- Increased complexity and risk of corruption
-- Lack of reliable cross-browser testing
-
-For large libraries, users should split exports or use Direct Sync.
+- **Batch export limit:** Hard limit of 800MB total library size to prevent device RAM exhaustion.
+- **ZIP64:** Intentionally not implemented due to limited browser support for handling >4GB binary structures and lacking reliable cross-browser compliance. Use Direct Sync or Streaming Export split across batches for extremely large libraries.
 
 ## 📜 Credits & Licenses
 
-### Tailwind CSS
-- License: MIT
-- https://tailwindcss.com
-
-### Lucide Icons
-- License: ISC
-- https://lucide.dev
-
-### Browser APIs
-- Web Streams API
-- File System Access API
-- Service Workers
-(No license required)
+- **Tailwind CSS:** MIT License (https://tailwindcss.com)
+- **Lucide Icons:** ISC License (https://lucide.dev)
+- **Browser APIs:** Web Streams API, File System Access API, Service Workers (No license required)
 
 ## ⚖️ License
 

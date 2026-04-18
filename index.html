@@ -6,8 +6,12 @@
     <title>Music Organizer Tool</title>
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#000000">
-    <link rel="stylesheet" href="./styles.css">
     <link rel="stylesheet" href="./tailwind.css">
+    <link rel="stylesheet" href="./styles.css">
+    <script>
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
 </head>
 <body class="min-h-screen flex flex-col selection:bg-purple-500/30">
     <header class="border-b border-white/5 px-6 py-4 flex items-center justify-between bg-black/80 backdrop-blur-md sticky top-0 z-50">
@@ -21,22 +25,28 @@
             </div>
         </div>
         <div class="flex items-center gap-2 sm:gap-3">
-            <button id="helpBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Keyboard Shortcuts">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <button id="helpBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 transition-all" title="Keyboard Shortcuts">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </button>
-            <button id="shareBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Share App">
+            <button id="themeToggleBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 transition-all" title="Toggle Theme">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 theme-moon"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 theme-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            </button>
+            <button id="shareBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-full text-gray-400 transition-all hidden" title="Share App">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             </button>
-            <button id="installBtn" class="hidden flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 text-purple-400 font-bold rounded-lg hover:bg-purple-500/20 transition-all text-xs border border-purple-500/20">
+            <button id="installBtn" class="hidden flex items-center gap-2 px-3 py-1.5 bg-purple-500/10 text-purple-400 font-bold rounded-full hover:bg-purple-500/20 transition-all text-xs border border-purple-500/20">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"/></svg>
                 <span class="hidden sm:inline">Install</span>
             </button>
-            <label class="cursor-pointer px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
+            <label class="cursor-pointer px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full text-sm font-bold transition-colors flex items-center gap-2 border border-white/10">
                 <input type="file" id="fileInput" multiple accept="audio/*" class="hidden">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 <span class="hidden sm:inline">Add Songs</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m9 18 6-6-6-6"/></svg>
             </label>
-            <button id="exportBtn" class="px-4 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-all shadow-lg active:scale-95">Export Options</button>
+            <button id="importBackupBtn" class="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-full text-sm font-bold transition-colors hidden" title="Import Backup">Import Backup</button>
+            <button id="exportBackupBtn" class="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-full text-sm font-bold transition-colors hidden" title="Export Backup">Export Backup</button>
+            <button id="exportBtn" class="px-4 py-2 bg-white text-black font-bold rounded-full hover:bg-gray-200 disabled:opacity-50 transition-all shadow-lg active:scale-95 hidden">Export Options</button>
         </div>
     </header>
 
@@ -51,6 +61,10 @@
             <label class="px-10 py-4 bg-purple-600 hover:bg-purple-500 rounded-2xl font-bold cursor-pointer transition-all shadow-xl shadow-purple-500/20 active:scale-95">
                 <input type="file" id="fileInputLarge" multiple accept="audio/*" class="hidden">
                 Browse Files
+            </label>
+            <label class="mt-6 flex items-center gap-2 text-sm text-gray-400 cursor-pointer hover:text-gray-300 transition-colors">
+                <input type="checkbox" id="extractMetadataToggle" class="w-4 h-4 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500/50" checked>
+                <span>Extract Artist/Album info (Slower)</span>
             </label>
         </div>
 
@@ -87,10 +101,11 @@
                                     <span id="duration">0:00</span>
                                 </div>
                             </div>
-                            <div class="flex items-center justify-center gap-8">
+                            <div class="flex items-center justify-center gap-6">
                                 <button id="prevBtn" class="p-2 text-gray-400 hover:text-white transition-colors btn-active"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg></button>
                                 <button id="playBtn" class="w-20 h-20 bg-white text-black rounded-full flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 ml-1"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
                                 <button id="nextBtn" class="p-2 text-gray-400 hover:text-white transition-colors btn-active"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg></button>
+                                <button id="skipBtn" class="p-2 text-gray-400 hover:text-white transition-colors btn-active flex flex-col items-center" title="Skip (S or Shift)"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="M5 3v18"/><path d="m19 12-9-9v18Z"/></svg><span class="text-[8px] font-bold uppercase mt-1">Skip</span></button>
                             </div>
                         </div>
                     </div>
@@ -114,7 +129,7 @@
                     <div class="flex gap-2">
                         <button id="undoBtn" disabled class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 disabled:opacity-20 transition-all" title="Undo Last Tag"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg></button>
                         <button id="presetsBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Preset Packs"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg></button>
-                        <button id="addFolderBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Add Folder"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><line x1="12" y1="10" x2="12" y2="16"/><line x1="9" y1="13" x2="15" y2="13"/></svg></button>
+                        <button id="manageFoldersBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 transition-all" title="Manage Folders"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg></button>
                         <button id="resetAppBtn" class="p-2 bg-red-500/10 hover:bg-red-500/20 rounded-lg text-red-500 transition-all" title="Reset All"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
                     </div>
                 </div>
@@ -139,11 +154,7 @@
         </div>
     </main>
 
-    <footer class="p-6 text-center border-t border-white/5 text-[10px] text-gray-600 uppercase tracking-widest space-y-2">
-        <p>Idea by sahildh3 • Programming by Google AI Studio • Built with Web Streams and File System Access APIs</p>
-        <p class="text-gray-700">Privacy: 100% Local. No data is ever uploaded.</p>
-        <p class="text-gray-500/50 lowercase italic">Disclaimer: The developer is not responsible for any file corruption or data loss resulting from the use of these experimental features.</p>
-    </footer>
+
 
     <audio id="audioPlayer"></audio>
 
@@ -178,7 +189,7 @@
     </div>
 
     <!-- Folder Modal -->
-    <div id="folderModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+    <div id="folderModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[120] flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl fade-in">
             <div class="p-6 border-b border-white/5">
                 <h2 id="folderModalTitle" class="text-xl font-bold">Add Folder</h2>
@@ -397,8 +408,29 @@
         </div>
     </div>
 
+    <!-- Manage Folders Modal -->
+    <div id="manageFoldersModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl fade-in flex flex-col max-h-[80vh]">
+            <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                <h2 class="text-xl font-bold">Manage Folders</h2>
+                <button id="closeManageFoldersBtn" class="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="p-4 border-b border-white/5">
+                <button id="manageAddFolderBtn" class="w-full py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Add New Folder
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar" id="manageFoldersList">
+                <!-- Folders will be rendered here -->
+            </div>
+        </div>
+    </div>
+
     <!-- Confirmation Modal -->
-    <div id="confirmModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[120] flex items-center justify-center p-4">
+    <div id="confirmModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[130] flex items-center justify-center p-4">
         <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl fade-in">
             <div class="p-6 border-b border-white/5">
                 <h2 id="confirmModalTitle" class="text-xl font-bold">Are you sure?</h2>
@@ -425,6 +457,25 @@
             </p>
         </div>
     </footer>
+
+    <!-- Export Summary Modal -->
+    <div id="exportSummaryModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[140] flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-white/10 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl fade-in">
+            <div class="p-6 border-b border-white/5">
+                <h2 class="text-xl font-bold">Export Summary</h2>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-gray-400 text-sm">Please review your folder assignments before exporting:</p>
+                <div id="exportSummaryList" class="space-y-2 max-h-48 overflow-y-auto custom-scrollbar bg-white/5 p-4 rounded-xl text-sm">
+                    <!-- Summary items will be injected here -->
+                </div>
+                <div class="flex gap-3 mt-6">
+                    <button id="cancelExportSummaryBtn" class="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-xl font-bold transition-all">Cancel</button>
+                    <button id="confirmExportSummaryBtn" class="flex-1 py-3 bg-purple-600 hover:bg-purple-500 rounded-xl font-bold transition-all">Start Export</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Error Modal -->
     <div id="errorModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[200] flex items-center justify-center p-4">
@@ -457,6 +508,17 @@
             </div>
         </div>
     </div>
+    <script>
+        // Theme Toggle Logic
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+
+        themeToggleBtn.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    </script>
     <script src="./app.js"></script>
 </body>
 </html>

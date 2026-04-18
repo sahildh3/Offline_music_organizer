@@ -1,5 +1,6 @@
-const CACHE_NAME = 'music-organizer-cache-v6';
+const CACHE_NAME = 'music-organizer-cache-v8';
 const ASSETS_TO_CACHE = [
+  './',
   './index.html',
   './app.js',
   './exportWorker.js',
@@ -22,7 +23,10 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('fetch', (event) => {
   // Skip caching for audio blobs, object URLs, and uploaded files
-  if (event.request.url.startsWith('blob:') || event.request.url.includes('audio')) {
+  if (event.request.url.startsWith('blob:') || event.request.url.startsWith('data:')) {
+    return;
+  }
+  if (event.request.destination === 'audio' || event.request.destination === 'video') {
     return fetch(event.request);
   }
 
@@ -30,14 +34,20 @@ self.addEventListener('fetch', (event) => {
     caches.open(CACHE_NAME).then((cache) => {
       return cache.match(event.request).then((cachedResponse) => {
         const fetchPromise = fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
             cache.put(event.request, networkResponse.clone());
           }
           return networkResponse;
         }).catch((err) => {
           console.warn("Network fetch failed in stale-while-revalidate:", err);
+          return new Response("Offline", { status: 503, statusText: "Service Unavailable" });
         });
-        return cachedResponse || fetchPromise;
+        
+        if (cachedResponse) {
+          event.waitUntil(fetchPromise);
+          return cachedResponse;
+        }
+        return fetchPromise;
       });
     })
   );
